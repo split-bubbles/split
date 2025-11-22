@@ -256,6 +256,62 @@ Manually settle fees (legacy support for specific error cases).
 }
 ```
 
+### Expense Splitting
+
+#### `POST /api/expenses/split`
+Split an expense among participants with optional adjustments and receipts.
+
+**Request:**
+```json
+{
+  "totalAmount": 256.75,
+  "currency": "USDC",
+  "participants": [
+    { "ens": "alice.eth", "wallet": "0xA1...", "paid": 200 },
+    { "ens": "bob.eth", "wallet": "0xB2...", "paid": 30 }
+  ],
+  "adjustments": [
+    { "ens": "bob.eth", "reason": "Ordered cocktails", "amount": 25 }
+  ],
+  "note": "Lisbon offsite dinner + Uber",
+  "iterationNotes": [
+    { "by": "alice.eth", "feedback": "Bob should cover cocktails separately." }
+  ],
+  "receipts": ["https://example.com/dinner.png"]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "split": {
+    "summary": "Dinner split with cocktails adjustment",
+    "currency": "USDC",
+    "total": 256.75,
+    "participants": [
+      { "ens": "alice.eth", "percentShare": 40, "paid": 200, "owed": -97.3 },
+      { "ens": "bob.eth", "percentShare": 35, "paid": 30, "owed": 60.9 },
+      { "ens": "carol.eth", "percentShare": 25, "paid": 26.75, "owed": 36.4 }
+    ],
+    "adjustments": [...],
+    "nextSteps": ["Confirm payouts in USDC wallet app."]
+  },
+  "metadata": {
+    "provider": "0x6D233D2610c32f630ED53E8a7Cbf759568041f8f",
+    "model": "qwen2.5-vl-72b-instruct",
+    "chatId": "chatcmpl-...",
+    "isVerified": true
+  }
+}
+```
+
+> Receipts can be hosted URLs or `data:image/...` strings. The backend forwards them as vision inputs to the model.
+
+## 🧪 Demo Script Update
+
+`npm run demo` now ends with **Step 12**, which sends a sample payload to `POST /api/expenses/split`. Start the Express server first, then run the script to see the full broker workflow followed by the expense-splitting response.
+
 ## 🔧 Development Scripts
 
 ```bash
@@ -390,6 +446,28 @@ curl -X POST http://localhost:4000/api/services/query \
     "providerAddress": "0xf07240Efa67755B5311bc75784a061eDB47165Dd",
     "query": "Explain quantum computing in simple terms",
     "fallbackFee": 0.01
+  }'
+```
+
+6. **Split an expense:**
+```bash
+curl -X POST http://localhost:4000/api/expenses/split \
+  -H "Content-Type: application/json" \
+  -d '{
+    "totalAmount": 256.75,
+    "currency": "USDC",
+    "participants": [
+      { "ens": "alice.eth", "wallet": "0xA1...", "paid": 200 },
+      { "ens": "bob.eth", "wallet": "0xB2...", "paid": 30 }
+    ],
+    "adjustments": [
+      { "ens": "bob.eth", "reason": "Ordered cocktails", "amount": 25 }
+    ],
+    "note": "Lisbon offsite dinner + Uber",
+    "iterationNotes": [
+      { "by": "alice.eth", "feedback": "Bob should cover cocktails separately." }
+    ],
+    "receipts": ["https://example.com/dinner.png"]
   }'
 ```
 

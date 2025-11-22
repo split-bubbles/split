@@ -283,6 +283,256 @@ class BrokerService {
     }
   }
 
+  /**
+   * Parse a receipt image into structured JSON using the qwen2.5-vl-72b-instruct vision model
+   * @param imageUrl Publicly accessible URL of the receipt image (optional if base64Image provided)
+   * @param base64Image Base64-encoded image string (optional if imageUrl provided)
+   */
+  async parseReceipt(imageUrl?: string, base64Image?: string): Promise<any> {
+    await this.ensureInitialized();
+
+    if (!imageUrl && !base64Image) {
+      throw new Error('Either imageUrl or base64Image is required');
+    }
+
+    // Normalize to a usable image URL format
+    let finalImageUrl: string;
+    if (base64Image) {
+      // Check if already includes data URL prefix
+      if (base64Image.startsWith('data:image/')) {
+        finalImageUrl = base64Image;
+      } else {
+        // Assume JPEG if no prefix, but try to detect common formats
+        const mimeType = base64Image.startsWith('/9j/') ? 'image/jpeg' : 
+                        base64Image.startsWith('iVBORw') ? 'image/png' :
+                        base64Image.startsWith('R0lGOD') ? 'image/gif' : 'image/jpeg';
+        finalImageUrl = `data:${mimeType};base64,${base64Image}`;
+      }
+    } else {
+      finalImageUrl = imageUrl!;
+    }
+
+    const providerAddress = OFFICIAL_PROVIDERS['qwen2.5-vl-72b-instruct'];
+    if (!providerAddress) {
+      throw new Error('Qwen vision provider not configured');
+    }
+
+    try {
+      const { endpoint, model } = await this.broker!.inference.getServiceMetadata(providerAddress);
+      const querySeed = `receipt:${Date.now()}:${finalImageUrl.substring(0, 50)}`;
+      const servingHeaders = await this.broker!.inference.getRequestHeaders(providerAddress, querySeed);
+
+      // Normalize headers to string map
+      const headers: Record<string, string> = {};
+      Object.entries(servingHeaders).forEach(([k, v]) => {
+        if (typeof v === 'string') headers[k] = v;
+      });
+
+      const openai = new OpenAI({ baseURL: endpoint, apiKey: '' });
+
+      const RECEIPT_EXTRACTION_PROMPT = `You are a receipt OCR and structuring assistant.\nOutput ONLY JSON matching exactly:\n{\n  "currency": string | null,\n  "total": number | null,\n  "subtotal": number | null,\n  "tax": number | null,\n  "tip": number | null,\n  "items": [{ "name": string, "price": number }]\n}\nNo extra keys, no commentary.\nInfer missing values if obvious; use null when absent.`;
+
+      const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+        { role: 'system', content: RECEIPT_EXTRACTION_PROMPT },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: { url: finalImageUrl }
+            }
+          ]
+        }
+      ];
+
+      const completion = await openai.chat.completions.create(
+        {
+          model,
+          temperature: 0,
+          response_format: { type: 'json_object' },
+          messages
+        },
+        { headers }
+      );
+
+      const messageContent = completion.choices[0].message.content || '{}';
+      let parsed: any = {};
+      try {
+        parsed = JSON.parse(messageContent);
+      } catch (e) {
+        throw new Error('Model returned invalid JSON');
+      }
+
+      // Basic shape validation
+      if (!parsed || typeof parsed !== 'object' || !('items' in parsed)) {
+        throw new Error('Parsed receipt JSON missing required keys');
+      }
+
+      let isValid: boolean | null = null;
+      try {
+        isValid = await this.broker!.inference.processResponse(providerAddress, messageContent, completion.id);
+      } catch (e: any) {
+        if (e.message.includes('Headers already used')) {
+          throw new Error('Response settlement failed due to single-use headers issue');
+        }
+      }
+
+      return {
+        receipt: parsed,
+        metadata: {
+          model,
+            provider: providerAddress,
+          isValid,
+          chatId: completion.id
+        }
+      };
+    } catch (error: any) {
+      throw new Error(`Failed to parse receipt: ${error.message}`);
+    }
+  }
+
+  /**
+   * Split expenses among participants using the deepseek reasoning model
+   * @param receipt Parsed receipt JSON object
+   * @param instructions User instructions for splitting (e.g., who ordered what)
+   * @param participants Array of participant objects with ens and paid amount
+   * @param priorPlan Optional previous split plan for iterative corrections
+   */
+  async splitExpense(
+    receipt: any,
+    instructions: string,
+    participants: Array<{ ens: string; paid: number }>,
+    priorPlan?: any
+  ): Promise<any> {
+    await this.ensureInitialized();
+
+    if (!receipt || typeof receipt !== 'object') {
+      throw new Error('receipt is required and must be an object');
+    }
+
+    if (!instructions || typeof instructions !== 'string') {
+      throw new Error('instructions is required and must be a string');
+    }
+
+    if (!participants || !Array.isArray(participants) || participants.length === 0) {
+      throw new Error('participants is required and must be a non-empty array');
+    }
+
+    const providerAddress = OFFICIAL_PROVIDERS['deepseek-r1-70b'];
+    if (!providerAddress) {
+      throw new Error('Deepseek reasoning provider not configured');
+    }
+
+    try {
+      const { endpoint, model } = await this.broker!.inference.getServiceMetadata(providerAddress);
+      const querySeed = `split:${Date.now()}:${instructions.substring(0, 30)}`;
+      const servingHeaders = await this.broker!.inference.getRequestHeaders(providerAddress, querySeed);
+
+      const headers: Record<string, string> = {};
+      Object.entries(servingHeaders).forEach(([k, v]) => {
+        if (typeof v === 'string') headers[k] = v;
+      });
+
+      const openai = new OpenAI({ baseURL: endpoint, apiKey: '' });
+
+      const REASON_PROMPT = `You are an expert expense splitting assistant. Given a receipt in JSON and a list of participants with amounts they paid, your task is to fairly split the total expense among all participants.
+
+You must follow these rules:
+- Treat the first participant in the list as the primary payer who initially covered the full amount.
+- Always split the tips and taxes proportionally based on each participant's share of the subtotal.
+- Calculate each participant's share of the subtotal (before tax and tip) based on what they ordered.
+- Apply the same percentage of tax and tip to each participant's subtotal share to determine their total owed amount.
+- Ensure that the sum of all participants' owed amounts equals the total amount on the receipt.
+
+Iteration/Correction Handling:
+- In earlier turn, you may have produced a split based on initial instructions. When the user provides updated instructions or corrections, you must start from the latest split instead of recalculating from scratch.
+- Adjust only the necessary parts of the split based on the new information provided, while keeping other parts unchanged.
+
+Output Format:
+Respond in JSON format with the following structure:
+
+{
+    "summary": "A brief summary of the expense split",
+    "currency": "Currency code (e.g., USD)",
+    "total": Total amount on the receipt as a number,
+    "payer": "ENS of the primary payer",
+    "participants": [
+        {
+            "ens": "Participant's ENS",
+            "paid": Amount they paid as a number,
+            "owes": Amount they owe as a number,
+            "comment": "Optional comment explaining their share"
+        },
+        ...
+    ],
+    "openQuestions": [
+        "List any uncertainties or clarifications needed"
+    ]
+}
+
+Ensure all monetary values are numbers rounded to two decimal places.`;
+
+      const userContent = `${instructions}\nParticipants: ${JSON.stringify(participants)}\nHere is the parsed receipt data: ${JSON.stringify(receipt)}`;
+
+      const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+        { role: 'system', content: REASON_PROMPT },
+        { role: 'user', content: userContent }
+      ];
+
+      // Add prior plan for iterative corrections
+      if (priorPlan) {
+        messages.splice(1, 0, {
+          role: 'assistant',
+          content: JSON.stringify(priorPlan)
+        });
+      }
+
+      const completion = await openai.chat.completions.create(
+        {
+          model,
+          temperature: 0.2,
+          response_format: { type: 'json_object' },
+          messages
+        },
+        { headers }
+      );
+
+      const messageContent = completion.choices[0].message.content || '{}';
+      let parsed: any = {};
+      try {
+        parsed = JSON.parse(messageContent);
+      } catch (e) {
+        throw new Error('Model returned invalid JSON');
+      }
+
+      // Basic validation
+      if (!parsed || typeof parsed !== 'object' || !('participants' in parsed)) {
+        throw new Error('Split result missing required participants field');
+      }
+
+      let isValid: boolean | null = null;
+      try {
+        isValid = await this.broker!.inference.processResponse(providerAddress, messageContent, completion.id);
+      } catch (e: any) {
+        if (e.message.includes('Headers already used')) {
+          throw new Error('Response settlement failed due to single-use headers issue');
+        }
+      }
+
+      return {
+        split: parsed,
+        metadata: {
+          model,
+          provider: providerAddress,
+          isValid,
+          chatId: completion.id
+        }
+      };
+    } catch (error: any) {
+      throw new Error(`Failed to split expense: ${error.message}`);
+    }
+  }
+
 }
 
 // Singleton instance
