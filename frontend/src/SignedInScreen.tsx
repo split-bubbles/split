@@ -7,6 +7,7 @@ import Header from "./common/Header";
 import BottomNav, { type TabType } from "./common/BottomNav";
 import UserBalance from "./balance/UserBalance";
 import AddFriend from "./friends/AddFriend";
+import FriendsList from "./friends/FriendsList";
 import PendingApprovals from "./friends/PendingApprovals";
 import AddExpense from "./expenses/AddExpense";
 
@@ -67,83 +68,89 @@ function SignedInScreen() {
     <div className="app-container">
       <Header />
       <main className={mainClasses}>
-        {/* Home Tab */}
-        {activeTab === "home" && (
-          <div className="tab-content home-screen">
-            <div className="card card--user-balance">
-              <UserBalance balance={formattedUsdcBalance} />
-            </div>
-            
-            <div className="section-header">
-              <h3>Recent Activity</h3>
-            </div>
-            
-            <div className="empty-state">
-              <span className="empty-icon">📊</span>
-              <p>No expenses yet</p>
-              <p className="empty-subtitle">Tap the ➕ button to create your first expense</p>
-            </div>
+        {/* Desktop: Show all tabs on same page in grid */}
+        <div className="desktop-all-tabs">
+          {/* Home Card */}
+          <div className="card card--user-balance">
+            <UserBalance balance={formattedUsdcBalance} />
           </div>
-        )}
-        
-        {/* Expense Tab */}
-        {activeTab === "expense" && (
-          <div className="tab-content">
-            <AddExpense openTrigger={expenseOpenTrigger} />
-          </div>
-        )}
-        
-        {/* Friends Tab */}
-        {activeTab === "friends" && (
-          <div className="tab-content">
-            <div className="card card--pending-approvals">
-              <PendingApprovals />
+          
+          {/* Friends Cards */}
+          <PendingApprovals />
+          
+          <AddFriend />
+          
+          <FriendsList />
+        </div>
+
+        {/* Mobile: Show only active tab */}
+        <div className="mobile-single-tab">
+          {/* Home Tab */}
+          {activeTab === "home" && (
+            <div className="tab-content home-screen">
+              <div className="card card--user-balance">
+                <UserBalance balance={formattedUsdcBalance} />
+              </div>
             </div>
-            
-            <div className="card card--add-friend">
-              <AddFriend />
+          )}
+          
+          {/* Expense Tab */}
+          {activeTab === "expense" && (
+            <div className="tab-content">
+              <AddExpense openTrigger={expenseOpenTrigger} />
             </div>
-          </div>
-        )}
-        
-        {/* Profile Tab */}
-        {activeTab === "profile" && (
-          <div className="tab-content">
-            <div className="card">
-              <h2 className="card-title">⚙️ Settings</h2>
-              <p style={{ color: "var(--cdp-example-text-secondary-color)", fontSize: "0.95rem" }}>
-                Account settings and preferences
-              </p>
+          )}
+          
+          {/* Friends Tab */}
+          {activeTab === "friends" && (
+            <div className="tab-content">
+              <div className="card card--pending-approvals">
+                <PendingApprovals />
+              </div>
               
-              <div className="settings-list">
-                <div className="setting-item">
-                  <span>💰 Default Currency</span>
-                  <span className="setting-value">USDC</span>
-                </div>
-                <div className="setting-item">
-                  <span>🔔 Notifications</span>
-                  <span className="setting-value">Enabled</span>
-                </div>
-                <div className="setting-item">
-                  <span>🌐 Network</span>
-                  <span className="setting-value">Base Sepolia</span>
+              <div className="card card--add-friend">
+                <AddFriend />
+              </div>
+            </div>
+          )}
+          
+          {/* Profile Tab */}
+          {activeTab === "profile" && (
+            <div className="tab-content">
+              <div className="card">
+                <h2 className="card-title">⚙️ Settings</h2>
+                <p style={{ color: "var(--cdp-example-text-secondary-color)", fontSize: "0.95rem" }}>
+                  Account settings and preferences
+                </p>
+                
+                <div className="settings-list">
+                  <div className="setting-item">
+                    <span>💰 Default Currency</span>
+                    <span className="setting-value">USDC</span>
+                  </div>
+                  <div className="setting-item">
+                    <span>🔔 Notifications</span>
+                    <span className="setting-value">Enabled</span>
+                  </div>
+                  <div className="setting-item">
+                    <span>🌐 Network</span>
+                    <span className="setting-value">Base Sepolia</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </main>
       
       {/* Floating Action Button - Quick Add Expense */}
-      {activeTab === "home" && (
-        <button 
-          className="fab" 
-          onClick={handleQuickAddExpense}
-          aria-label="Add expense"
-        >
-          ➕
-        </button>
-      )}
+      <button 
+        className={`fab ${activeTab === "home" ? "fab-visible" : ""}`}
+        onClick={handleQuickAddExpense}
+        aria-label="Add expense"
+      >
+        ➕
+      </button>
       
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>

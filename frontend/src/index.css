@@ -69,6 +69,15 @@
   background-color: color(from var(--cdp-example-accent-color) srgb r g b / 0.3);
 }
 
+html {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(180deg, 
+    var(--cdp-example-page-bg-color) 0%, 
+    var(--cdp-example-page-bg-alt-color) 100%);
+  background-attachment: fixed;
+}
+
 html,
 html * {
   box-sizing: border-box;
@@ -78,6 +87,10 @@ body {
   margin: 0;
   min-height: 100vh;
   min-width: 320px;
+  background: linear-gradient(180deg, 
+    var(--cdp-example-page-bg-color) 0%, 
+    var(--cdp-example-page-bg-alt-color) 100%);
+  background-attachment: fixed;
 }
 
 body,
@@ -163,6 +176,107 @@ header {
   top: 0;
   z-index: 10;
   flex-shrink: 0;
+}
+
+/* Add rounded edges to header container */
+header.main-header {
+  border-radius: 1.5rem !important;
+  margin: 1rem auto 0 auto !important;
+  width: calc(100vw - 4rem) !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  right: auto !important;
+  top: 0 !important;
+}
+
+/* Light mode header with #EEF3FF color - liquid glass effect */
+@media (prefers-color-scheme: light) {
+  header.main-header,
+  header {
+    background: rgba(238, 243, 255, 0.8);
+    border: 1px solid rgba(39, 117, 202, 0.5);
+    border-radius: 1.5rem;
+    box-shadow: 
+      0 4px 16px rgba(238, 243, 255, 0.3),
+      0 1px 0 rgba(255, 255, 255, 0.5) inset,
+      0 -1px 0 rgba(238, 243, 255, 0.2) inset;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background-blend-mode: overlay;
+    margin: 1rem auto 0 auto;
+    width: calc(100vw - 4rem);
+    left: 50%;
+    transform: translateX(-50%);
+    right: auto;
+  }
+  
+  header .header-title,
+  header .site-title {
+    color: #2775CA !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    -webkit-text-fill-color: #2775CA !important;
+    background-clip: unset !important;
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  }
+  
+  header .money-icon {
+    display: inline-block;
+    font-size: 1.5rem;
+    filter: 
+      brightness(0) 
+      saturate(100%) 
+      invert(27%) 
+      sepia(95%) 
+      saturate(2000%) 
+      hue-rotate(200deg) 
+      brightness(0.8) 
+      contrast(1.2);
+  }
+  
+  header .header-address-text,
+  header .wallet-address {
+    color: #2775CA !important;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  }
+  
+  header .header-address-button,
+  header .copy-address-button {
+    padding: 0.45rem 0.75rem;
+    border-radius: 0.6rem;
+    background-color: rgba(255, 255, 255, 0.4) !important;
+    border: 1px solid rgba(39, 117, 202, 0.3) !important;
+    color: #2775CA !important;
+    transition: all 0.2s ease;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(39, 117, 202, 0.1);
+  }
+  
+  header .header-address-button:hover,
+  header .copy-address-button:hover {
+    background-color: rgba(255, 255, 255, 0.5) !important;
+    border-color: rgba(39, 117, 202, 0.4) !important;
+    box-shadow: 0 4px 12px rgba(39, 117, 202, 0.15);
+  }
+  
+  header .header-badge,
+  header .smart-badge {
+    margin-left: 0.5rem;
+    font-size: 0.55rem;
+    letter-spacing: 1px;
+    font-weight: 700;
+    padding: 0.25rem 0.4rem;
+    background-color: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    border-radius: 0.35rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
 }
 
 header .wallet-address {
@@ -563,10 +677,13 @@ input[type="checkbox"] {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  min-height: 100vh;
   overflow: hidden;
   background: linear-gradient(180deg, 
     var(--cdp-example-page-bg-color) 0%, 
     var(--cdp-example-page-bg-alt-color) 100%);
+  background-attachment: fixed;
+  width: 100%;
 }
 
 /* Main Content Area */
@@ -795,6 +912,17 @@ input[type="checkbox"] {
   }
 }
 
+/* Hide desktop view on mobile */
+@media (max-width: 1023px) {
+  .desktop-all-tabs {
+    display: none;
+  }
+  
+  .mobile-single-tab {
+    display: block;
+  }
+}
+
 /* Floating Action Button */
 .fab {
   position: fixed;
@@ -803,10 +931,10 @@ input[type="checkbox"] {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #0052FF 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, #2775CA 0%, #1e5aa8 100%);
   color: white;
   border: none;
-  box-shadow: 0 8px 16px rgba(0, 82, 255, 0.3);
+  box-shadow: 0 8px 16px rgba(39, 117, 202, 0.4);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -818,66 +946,201 @@ input[type="checkbox"] {
 
 .fab:hover {
   transform: scale(1.1);
-  box-shadow: 0 12px 24px rgba(0, 82, 255, 0.4);
+  box-shadow: 0 12px 24px rgba(39, 117, 202, 0.5);
+  background: linear-gradient(135deg, #1e5aa8 0%, #2775CA 100%);
 }
 
 .fab:active {
   transform: scale(0.95);
 }
 
+/* Hide FAB on mobile completely */
+@media (max-width: 1023px) {
+  .fab {
+    display: none !important;
+  }
+}
+
+/* Show FAB on desktop always */
+@media (min-width: 1024px) {
+  .fab {
+    display: flex;
+    bottom: 2rem;
+    right: 2rem;
+    background: linear-gradient(135deg, #2775CA 0%, #1e5aa8 100%);
+    box-shadow: 0 8px 16px rgba(39, 117, 202, 0.4);
+  }
+  
+  .fab:hover {
+    box-shadow: 0 12px 24px rgba(39, 117, 202, 0.5);
+    background: linear-gradient(135deg, #1e5aa8 0%, #2775CA 100%);
+  }
+}
+
+/* Ensure FAB uses USDC blue in light mode */
+@media (prefers-color-scheme: light) {
+  .fab {
+    background: linear-gradient(135deg, #2775CA 0%, #1e5aa8 100%) !important;
+    box-shadow: 0 8px 16px rgba(39, 117, 202, 0.4) !important;
+  }
+  
+  .fab:hover {
+    background: linear-gradient(135deg, #1e5aa8 0%, #2775CA 100%) !important;
+    box-shadow: 0 12px 24px rgba(39, 117, 202, 0.5) !important;
+  }
+}
+
 /* Desktop adjustments */
 @media (min-width: 1024px) {
-  /* Desktop: full-width fixed bottom navigation */
+  /* Hide bottom nav on desktop */
   .bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    max-width: none;
-    margin: 0;
-    border-radius: 0;
-    box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
-    padding: 0.75rem 2rem calc(0.75rem + env(safe-area-inset-bottom));
+    display: none;
+  }
+  
+  /* Hide mobile single tab view on desktop */
+  .mobile-single-tab {
+    display: none;
+  }
+  
+  /* Show desktop all tabs view in 2x2 grid */
+  .desktop-all-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 1.5rem;
+    padding: 1rem;
+    max-width: 900px;
+    margin: 0 auto;
+    justify-items: center;
+    align-items: center;
+    place-items: center;
     justify-content: center;
-    gap: 3rem;
+    width: fit-content;
   }
-  .bottom-nav-item { max-width: none; }
-  /* Reposition FAB slightly above nav */
-  .fab {
-    bottom: calc(var(--bottom-nav-height) + 1rem);
-    right: 2rem;
+  
+  /* Override any grid-column settings for balance card in desktop grid */
+  .desktop-all-tabs .card--user-balance {
+    grid-column: auto;
+    width: 380px;
+    height: 380px;
+    max-width: 100%;
+    max-height: 100%;
   }
-  .main-content { padding-bottom: var(--bottom-nav-height); }
-  .main-content.no-scroll { padding-bottom: var(--bottom-nav-height); }
+  
+  /* All cards same size - make them square boxes */
+  .desktop-all-tabs .card {
+    width: 380px;
+    height: 380px;
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: auto;
+  }
+  
+  /* Ensure UserBalance inner content fits - no special sizing */
+  .desktop-all-tabs .card--user-balance > div {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  
+  /* Ensure other cards are same size */
+  .desktop-all-tabs .card--pending-approvals,
+  .desktop-all-tabs .card--add-friend {
+    width: 380px;
+    height: 380px;
+    aspect-ratio: 1;
+    overflow-y: auto;
+  }
+  
+  /* USDC blue colors for cards in light mode */
+  .desktop-all-tabs .card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.98) 100%);
+    border: 1px solid rgba(39, 117, 202, 0.25);
+    box-shadow: 0 4px 12px rgba(39, 117, 202, 0.1);
+  }
+  
+  .desktop-all-tabs .card:hover {
+    border-color: rgba(39, 117, 202, 0.4);
+    box-shadow: 0 8px 24px rgba(39, 117, 202, 0.2);
+  }
+  
+  .desktop-all-tabs .card-title {
+    color: #2775CA;
+  }
+  
+  .desktop-all-tabs .setting-item {
+    background-color: rgba(39, 117, 202, 0.05);
+    border-color: rgba(39, 117, 202, 0.2);
+  }
+  
+  .desktop-all-tabs .setting-value {
+    color: #2775CA;
+  }
   
   .app-container {
-    overflow: visible;
-    height: auto;
+    overflow: hidden;
+    height: 100vh;
+    min-height: 100vh;
+    background: linear-gradient(180deg, 
+      var(--cdp-example-page-bg-color) 0%, 
+      var(--cdp-example-page-bg-alt-color) 100%);
+    background-attachment: fixed;
+    width: 100%;
   }
   
   .main-content {
-    overflow: visible;
-    padding-bottom: 2rem;
+    overflow: hidden;
+    padding-top: calc(var(--header-height) + 1rem + 8rem);
+    padding-bottom: 8rem;
+    height: calc(100vh - var(--header-height));
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
-  .tab-content {
-    padding: 2rem 1.5rem;
-    max-width: 1200px;
+  .main-content.no-scroll {
+    overflow: hidden;
+    padding-top: calc(var(--header-height) + 1rem + 8rem);
+    padding-bottom: 8rem;
+    height: calc(100vh - var(--header-height));
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
-  /* Show all tabs on desktop in grid */
-  .tab-content {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 2rem;
+  .desktop-all-tabs {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+/* Dark mode overrides for desktop cards */
+@media (min-width: 1024px) and (prefers-color-scheme: dark) {
+  .desktop-all-tabs .card {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(51, 65, 85, 0.9) 100%);
+    border-color: rgba(59, 130, 246, 0.25);
   }
   
-  .tab-content > * {
-    grid-column: span 1;
+  .desktop-all-tabs .card:hover {
+    border-color: rgba(59, 130, 246, 0.4);
   }
   
-  .card--user-balance {
-    grid-column: 1 / -1;
+  .desktop-all-tabs .card-title {
+    color: #3b82f6;
+  }
+  
+  .desktop-all-tabs .setting-item {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.2);
+  }
+  
+  .desktop-all-tabs .setting-value {
+    color: #3b82f6;
   }
 }
 
@@ -932,18 +1195,9 @@ input[type="checkbox"] {
 }
 
 @media (min-width: 1024px) {
-  .tab-content { padding: 2rem 2.5rem; }
-}
-/* Desktop override: ensure full-width flex layout instead of prior grid/max-width */
-@media (min-width: 1024px) {
-  .tab-content {
-    display: flex !important;
-    flex-direction: column !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
+  .mobile-single-tab .tab-content { 
+    padding: 2rem 2.5rem; 
   }
-  .tab-content > * { width: 100%; }
 }
 
 /* Pastel accent styling for cards */

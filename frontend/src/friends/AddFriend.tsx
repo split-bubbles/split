@@ -3,10 +3,66 @@ import { useReadContract } from "../hooks/useReadContract";
 import { useState, useEffect } from "react";
 import { createPublicClient, http, isAddress, getAddress, encodeFunctionData, type Address } from "viem";
 import { normalize } from "viem/ens";
-import { baseSepolia } from "viem/chains";
+import { baseSepolia, sepolia } from "viem/chains";
 import { FRIEND_REQUESTS_ABI, FRIEND_REQUESTS_CONTRACT_ADDRESS } from "../contracts/FriendRequests";
 import FriendNameDisplay from "./FriendNameDisplay";
 import { TransactionLink, AddressLink } from "./TransactionLink";
+import { useEnsNameOptimistic } from "../hooks/useEnsNameOptimistic";
+
+/**
+ * Component to display a friend in the friends list with ENS name resolution
+ */
+function FriendListItem({ 
+  address, 
+  sentRequestTransactions 
+}: { 
+  address: Address;
+  sentRequestTransactions: Map<string, `0x${string}`>;
+}) {
+  const { data: ensName } = useEnsNameOptimistic({
+    address: address as `0x${string}` | undefined,
+    l1ChainId: sepolia.id,
+    l2ChainId: baseSepolia.id,
+  });
+
+  return (
+    <div
+      style={{
+        padding: "0.75rem",
+        borderRadius: "0.5rem",
+        border: "1px solid #ccc",
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.5rem",
+      }}
+    >
+      <div>
+        <p style={{ margin: 0, fontWeight: "500" }}>
+          {ensName ? (
+            <span>{ensName}</span>
+          ) : (
+            <span>{address.slice(0, 6)}...{address.slice(-4)}</span>
+          )}
+        </p>
+        <p style={{ margin: 0, fontSize: "0.875rem", color: "#666" }}>
+          {ensName ? (
+            <span>{address.slice(0, 6)}...{address.slice(-4)}</span>
+          ) : (
+            <AddressLink address={address} />
+          )}
+        </p>
+        {sentRequestTransactions.has(address.toLowerCase()) && (
+          <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.75rem" }}>
+            <TransactionLink 
+              hash={sentRequestTransactions.get(address.toLowerCase())!} 
+              label="View Request Transaction" 
+            />
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /**
  * Component for sending friend requests using the smart contract
@@ -21,47 +77,27 @@ function AddFriend() {
   const [resolvedName, setResolvedName] = useState<string | null>(null);
   const [isResolving, setIsResolving] = useState(false);
   const [error, setError] = useState("");
-  const [friends, setFriends] = useState<Address[]>([]);
   const [userOperationHash, setUserOperationHash] = useState<`0x${string}` | null>(null);
   const [isSending, setIsSending] = useState(false);
 
   const smartAccount = currentUser?.evmSmartAccounts?.[0];
-
-  // Read friends from contract
-  const { data: contractFriends, refetch: refetchFriends } = useReadContract({
-    address: currentAddress ? FRIEND_REQUESTS_CONTRACT_ADDRESS : undefined,
-    abi: FRIEND_REQUESTS_ABI,
-    functionName: "getFriends",
-    args: currentAddress ? [currentAddress] : undefined,
-    query: {
-      enabled: !!currentAddress,
-      refetchInterval: 5000, // Refetch every 5 seconds
-    },
-  });
-
-  useEffect(() => {
-    if (contractFriends) {
-      setFriends(contractFriends as Address[]);
-    }
-  }, [contractFriends]);
 
   const [sentRequestTransactions, setSentRequestTransactions] = useState<Map<string, `0x${string}`>>(new Map());
 
   const isPending = status === "pending";
   const isSuccess = status === "success" && data;
 
-  // Refetch after successful transaction
+  // Reset form after successful transaction
   useEffect(() => {
     if (isSuccess) {
       setTimeout(() => {
-        refetchFriends();
         setInput("");
         setResolvedAddress(null);
         setResolvedName(null);
         setError("");
       }, 2000);
     }
-  }, [isSuccess, refetchFriends]);
+  }, [isSuccess]);
 
   // Store transaction hash when user operation hash is available
   useEffect(() => {
@@ -408,47 +444,6 @@ function AddFriend() {
           <p style={{ color: "orange", fontSize: "0.875rem", margin: 0 }}>
             Smart Account not available. Please ensure you're signed in.
           </p>
-        )}
-
-        {friends.length > 0 && (
-          <div style={{ marginTop: "1rem" }}>
-            <h3 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>Your Friends ({friends.length})</h3>
-            <div className="flex-col-container" style={{ gap: "0.5rem" }}>
-              {friends.map((friendAddress) => (
-                <div
-                  key={friendAddress}
-                  style={{
-                    padding: "0.75rem",
-                    borderRadius: "0.5rem",
-                    border: "1px solid #ccc",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <div>
-                    <p style={{ margin: 0, fontWeight: "500" }}>
-                      <FriendNameDisplay address={friendAddress} />
-                      <span style={{ marginLeft: "0.5rem" }}>
-                        {friendAddress.slice(0, 6)}...{friendAddress.slice(-4)}
-                      </span>
-                    </p>
-                    <p style={{ margin: 0, fontSize: "0.875rem", color: "#666" }}>
-                      <AddressLink address={friendAddress} />
-                    </p>
-                    {sentRequestTransactions.has(friendAddress.toLowerCase()) && (
-                      <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.75rem" }}>
-                        <TransactionLink 
-                          hash={sentRequestTransactions.get(friendAddress.toLowerCase())!} 
-                          label="View Request Transaction" 
-                        />
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         )}
       </div>
     </div>
