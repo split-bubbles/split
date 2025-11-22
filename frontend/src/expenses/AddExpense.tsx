@@ -27,7 +27,11 @@ const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000/
 /**
  * Component for adding a new expense
  */
-function AddExpense() {
+interface AddExpenseProps {
+  openTrigger?: number; // increments externally to request opening
+}
+
+function AddExpense({ openTrigger }: AddExpenseProps) {
   const { evmAddress: currentAddress } = useEvmAddress();
   
   // Navigation state
@@ -92,6 +96,17 @@ function AddExpense() {
     setIsOpen(true);
     setCurrentStep("select-friends");
   };
+
+  // Open when external trigger changes
+  useEffect(() => {
+    if (openTrigger !== undefined && openTrigger > 0) {
+      // Only auto-open if currently closed
+      if (!isOpen) {
+        setIsOpen(true);
+        setCurrentStep("select-friends");
+      }
+    }
+  }, [openTrigger, isOpen]);
 
   const handleCancel = () => {
     setIsOpen(false);

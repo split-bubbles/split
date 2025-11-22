@@ -25,6 +25,9 @@
   --cdp-example-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --cdp-example-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --cdp-example-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  /* Layout sizing */
+  --header-height: 56px;
+  --bottom-nav-height: 64px;
 
   background-color: var(--cdp-example-page-bg-color);
   color: var(--cdp-example-card-border-color);
@@ -575,6 +578,27 @@ input[type="checkbox"] {
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
 }
+/* No-scroll home layout */
+.main-content.no-scroll {
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.main-content.no-scroll .tab-content.home-screen {
+  height: calc(100dvh - var(--header-height) - var(--bottom-nav-height));
+  min-height: unset;
+  padding: 1.25rem 1rem 0 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.tab-content.home-screen .empty-state {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 
 .tab-content {
   padding: 1.5rem 1rem;
@@ -583,7 +607,7 @@ input[type="checkbox"] {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  min-height: calc(100vh - 180px);
+  min-height: calc(100dvh - var(--header-height) - var(--bottom-nav-height) - 16px);
   animation: fadeIn 0.3s ease-in-out;
 }
 
@@ -789,7 +813,7 @@ input[type="checkbox"] {
   justify-content: center;
   font-size: 2rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 50;
+  z-index: 200; /* Raised above bottom nav for clickability */
 }
 
 .fab:hover {
@@ -803,13 +827,28 @@ input[type="checkbox"] {
 
 /* Desktop adjustments */
 @media (min-width: 1024px) {
+  /* Desktop: full-width fixed bottom navigation */
   .bottom-nav {
-    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-width: none;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
+    padding: 0.75rem 2rem calc(0.75rem + env(safe-area-inset-bottom));
+    justify-content: center;
+    gap: 3rem;
   }
-  
+  .bottom-nav-item { max-width: none; }
+  /* Reposition FAB slightly above nav */
   .fab {
-    display: none;
+    bottom: calc(var(--bottom-nav-height) + 1rem);
+    right: 2rem;
   }
+  .main-content { padding-bottom: var(--bottom-nav-height); }
+  .main-content.no-scroll { padding-bottom: var(--bottom-nav-height); }
   
   .app-container {
     overflow: visible;

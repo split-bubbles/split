@@ -33,6 +33,7 @@ const ERC20_ABI = [
 function SignedInScreen() {
   const { evmAddress: address } = useEvmAddress();
   const [activeTab, setActiveTab] = useState<TabType>("home");
+  const [expenseOpenTrigger, setExpenseOpenTrigger] = useState(0);
 
   // Fetch USDC balance using Wagmi
   const {
@@ -57,15 +58,18 @@ function SignedInScreen() {
 
   const handleQuickAddExpense = () => {
     setActiveTab("expense");
+    setExpenseOpenTrigger((v) => v + 1);
   };
+
+  const mainClasses = ["main-content", activeTab === "home" ? "no-scroll" : null].filter(Boolean).join(" ");
 
   return (
     <div className="app-container">
       <Header />
-      <main className="main-content">
+      <main className={mainClasses}>
         {/* Home Tab */}
         {activeTab === "home" && (
-          <div className="tab-content">
+          <div className="tab-content home-screen">
             <div className="card card--user-balance">
               <UserBalance balance={formattedUsdcBalance} />
             </div>
@@ -85,7 +89,7 @@ function SignedInScreen() {
         {/* Expense Tab */}
         {activeTab === "expense" && (
           <div className="tab-content">
-            <AddExpense />
+            <AddExpense openTrigger={expenseOpenTrigger} />
           </div>
         )}
         
