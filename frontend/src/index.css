@@ -900,3 +900,59 @@ input[type="checkbox"] {
     background-position: -200% 0;
   }
 }
+
+/* =====================================================
+   Full-width layout overrides + pastel accents
+   (App-wide enhancements added after original styles)
+   ===================================================== */
+.tab-content {
+  padding: 1.5rem 1.25rem;
+  width: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: calc(100dvh - var(--header-height) - var(--bottom-nav-height) - 16px);
+}
+.tab-content .card { max-width: 100%; }
+
+.app-container {
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, var(--cdp-example-page-bg-color) 0%, var(--cdp-example-page-bg-alt-color) 65%),
+    radial-gradient(circle at 20% 15%, rgba(168,141,250,0.25), transparent 60%),
+    radial-gradient(circle at 80% 85%, rgba(94,234,212,0.20), transparent 55%),
+    radial-gradient(circle at 50% 50%, rgba(249,168,212,0.18), transparent 70%);
+  background-blend-mode: overlay, normal;
+}
+
+.bottom-nav {
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.35), 0 -2px 6px rgba(0,0,0,0.25);
+  backdrop-filter: blur(12px) saturate(140%);
+}
+
+@media (min-width: 1024px) {
+  .tab-content { padding: 2rem 2.5rem; }
+}
+/* Desktop override: ensure full-width flex layout instead of prior grid/max-width */
+@media (min-width: 1024px) {
+  .tab-content {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+  .tab-content > * { width: 100%; }
+}
+
+/* Pastel accent styling for cards */
+.tab-content .card {
+  background: linear-gradient(135deg, rgba(30,41,59,0.9) 0%, rgba(51,65,85,0.9) 55%) padding-box,
+              linear-gradient(135deg, rgba(168,141,250,0.25) 0%, rgba(94,234,212,0.25) 50%, rgba(249,168,212,0.25) 100%) border-box;
+  border: 1px solid rgba(168,141,250,0.35);
+}
+.tab-content .card:hover {
+  border-color: rgba(94,234,212,0.55);
+  box-shadow: 0 8px 24px rgba(168,141,250,0.25), 0 4px 12px rgba(94,234,212,0.25);
+}

@@ -70,8 +70,8 @@ export const AiPanel: React.FC<AiPanelProps> = ({ mode, participants, selfAddres
     }}>
       <h3 style={{ margin: 0, marginBottom: '12px', fontSize: '14px', letterSpacing: '0.5px', fontWeight: 600, color: '#e2e8f0' }}>AI Receipt Assist</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <div style={{ flex: 1, position: 'relative' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ position: 'relative' }}>
             <label htmlFor="ai-upload" style={{
               display: 'flex',
               flexDirection: 'column',
@@ -88,30 +88,28 @@ export const AiPanel: React.FC<AiPanelProps> = ({ mode, participants, selfAddres
                 <span style={{ fontSize: '11px', color: '#94a3b8' }}>Change Image</span>
               ) : (
                 <>
-                  <span style={{ fontSize: '26px' }}>🧸📷</span>
+                  <span style={{ fontSize: '26px' }}>🧾📄</span>
                   <span style={{ fontSize: '11px', color: '#94a3b8' }}>Browse receipt</span>
                 </>
               )}
               <input id="ai-upload" type="file" accept="image/*" onChange={onFileChange} style={{ display: 'none' }} />
             </label>
           </div>
-          <div style={{ flex: 1 }}>
-            <input
-              type="text"
-              placeholder="Or paste image URL"
-              value={imageUrl}
-              onChange={e => setImageUrl(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                background: '#0f172a',
-                border: '1px solid #475569',
-                borderRadius: '8px',
-                color: '#f1f5f9',
-                fontSize: '12px'
-              }}
-            />
-          </div>
+          <input
+            type="text"
+            placeholder="Or paste image URL"
+            value={imageUrl}
+            onChange={e => setImageUrl(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              background: '#0f172a',
+              border: '1px solid #475569',
+              borderRadius: '8px',
+              color: '#f1f5f9',
+              fontSize: '12px'
+            }}
+          />
         </div>
         {hasImage && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
