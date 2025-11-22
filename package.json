@@ -1,0 +1,17 @@
+{
+  "name": "cdp-split-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for CDP Split friend requests",
+  "scripts": {
+    "compile": "hardhat compile",
+    "deploy:base-sepolia": "hardhat run scripts/deploy.ts --network base-sepolia",
+    "verify": "hardhat verify --network base-sepolia"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@types/node": "^20.19.25",
+    "dotenv": "^16.6.1",
+    "hardhat": "^2.27.0",
+    "typescript": "^5.9.3"
+  }
+}

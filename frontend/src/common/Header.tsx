@@ -1,16 +1,16 @@
 import { AuthButton } from "@coinbase/cdp-react/components/AuthButton";
-import { useAccount } from "wagmi";
+import { useEvmAddress } from "@coinbase/cdp-hooks";
 import { useCallback, useEffect, useState } from "react";
 
 import { IconCheck, IconCopy, IconUser } from "./Icons";
-import BaseNameResolver from "./BaseNameResolver";
+import BaseNameResolver from "../basename/BaseNameResolver";
 
 /**
  * Header component
- * Now using Wagmi's useAccount hook
+ * Using CDP's useEvmAddress hook
  */
 function Header() {
-  const { address: evmAddress } = useAccount();
+  const { evmAddress } = useEvmAddress();
   const [isCopied, setIsCopied] = useState(false);
 
   const formatAddress = useCallback((address: string) => {

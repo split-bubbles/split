@@ -1,16 +1,13 @@
 import { useName } from "@coinbase/onchainkit/identity";
-import { useAccount } from "wagmi";
+import { useEvmAddress } from "@coinbase/cdp-hooks";
 import { useCurrentUser, useSendUserOperation } from "@coinbase/cdp-hooks";
 import { baseSepolia } from "viem/chains";
 import { useState, useEffect } from "react";
 import { Button } from "@coinbase/cdp-react/components/ui/Button";
-import { encodeFunctionData, namehash, createPublicClient, http, formatUnits, parseEther } from "viem";
+import { encodeFunctionData, namehash, createPublicClient, http, decodeErrorResult } from "viem";
 import { normalize } from "viem/ens";
 
-// Base Sepolia Basenames NFT Contract Address
-// From successful transaction: https://sepolia.basescan.org/tx/0x5dc88623a9159fbd05dd682c985f5d1a849dc637c6697ef1a46f0ae6e2da99c2
-const BASE_SEPOLIA_BASENAMES_CONTRACT = "0xA0c70ec36c010B55E3C434D6c6EbEEC50c705794" as const;
-
+// Base Sepolia Basenames Controller Contract Address
 const BASE_SEPOLIA_BASENAMES_CONTROLLER_CONTRACT = "0x49ae3cc2e3aa768b1e5654f5d3c6002144a59581" as const;
 
 // Basename format for Base Sepolia
@@ -19,10 +16,12 @@ const BASE_SEPOLIA_NAME_SUFFIX = ".basetest.eth";
 // Minimum registration duration (1 year in seconds)
 const MIN_DURATION = 365 * 24 * 60 * 60;
 
+// Bypass key for temporary access after basename creation
+const BYPASS_KEY = "cdp-split-basename-bypass";
+
 const basenamesABI = [
   {
     inputs: [
-      { name: "payableAmount", type: "uint256" },
       {
         name: "request",
         type: "tuple",
@@ -68,11 +67,11 @@ const basenamesABI = [
  * Component that allows users to create their own basename during the login flow
  */
 function BaseNameSetup() {
-  const { address } = useAccount();
+  const { evmAddress: address } = useEvmAddress();
   const { currentUser } = useCurrentUser();
   const { sendUserOperation, data, error: sendError, status } = useSendUserOperation();
 
-  const { data: baseName, isLoading: isLoadingName, refetch } = useName({
+  const { data: baseName, isLoading: isLoadingName } = useName({
     address: address || undefined,
     chain: baseSepolia,
   });
@@ -172,20 +171,16 @@ function BaseNameSetup() {
         return;
     }
 
-    console.log(available);
-
-
       // Get the registration fee
-      const [basePrice, premiumPrice] = await publicClient.readContract({
+      const rentPriceResult = await publicClient.readContract({
         address: BASE_SEPOLIA_BASENAMES_CONTROLLER_CONTRACT,
         abi: basenamesABI,
         functionName: "rentPrice",
         args: [inputName, MIN_DURATION],
       });
 
-      console.log(basePrice, premiumPrice);
-
-      const totalFee = basePrice + premiumPrice;
+      const [basePrice, premiumPrice] = rentPriceResult as [bigint, bigint];
+      const totalFee = (basePrice + premiumPrice);
 
       console.log(totalFee);
 
@@ -222,19 +217,18 @@ function BaseNameSetup() {
   abi: basenamesABI,
   functionName: "register",
   args: [
-    totalFee, // payableAmount (ETH)
     {
       name: inputName,
       owner: smartAccountAddress,
       duration: MIN_DURATION,
-      resolver: "0x0000000000000000000000000000000000000000", // or your preferred resolver
+      resolver: "0x6533C94869D28fAA8dF77cc63f9e2b2D6Cf77eBA", // or your preferred resolver
       data: [],        // no extra records
       reverseRecord: true, // recommended
     }
   ]
 });
-
-
+console.log("Register data:", registerData);
+console.log("From:", smartAccountAddress);
       console.log("Sending registration transaction:", {
         contract: BASE_SEPOLIA_BASENAMES_CONTROLLER_CONTRACT,
         name: inputName, 
@@ -242,6 +236,64 @@ function BaseNameSetup() {
         duration: MIN_DURATION.toString(),
         fee: totalFee.toString(),
       });
+// Before sendUserOperation, simulate the call to get detailed error
+try {
+  const simulation = await publicClient.simulateContract({
+    address: BASE_SEPOLIA_BASENAMES_CONTROLLER_CONTRACT,
+    abi: basenamesABI,
+    functionName: "register",
+    args: [
+      {
+        name: inputName,
+        owner: smartAccountAddress,
+        duration: MIN_DURATION,
+        resolver: "0x6533C94869D28fAA8dF77cc63f9e2b2D6Cf77eBA",
+        data: [],
+        reverseRecord: true,
+      }
+    ],
+    account: smartAccountAddress as `0x${string}`,
+    value: totalFee,
+  });
+  console.log("Simulation successful:", simulation);
+} catch (simError: any) {
+  console.error("Contract simulation failed:", simError);
+  
+  // Try to decode the revert reason
+  if (simError?.cause?.data) {
+    console.error("Revert data:", simError.cause.data);
+    
+    // Try to decode as a string revert reason
+    try {
+      const decoded = decodeErrorResult({
+        abi: basenamesABI,
+        data: simError.cause.data,
+      });
+      console.error("Decoded revert reason:", decoded);
+    } catch (decodeErr) {
+      // If it's not a standard error, try to get the raw data
+      console.error("Could not decode revert reason, raw data:", simError.cause.data);
+    }
+  }
+  
+  // Check for common revert reasons
+  if (simError?.cause?.reason) {
+    console.error("Revert reason:", simError.cause.reason);
+  }
+  
+  // Check the short message for clues
+  if (simError?.shortMessage) {
+    console.error("Short message:", simError.shortMessage);
+  }
+  
+  // Don't throw here - let it continue to show the error to user
+  setError(`Registration failed: ${simError.shortMessage || simError.message || "Unknown error"}`);
+  setIsChecking(false);
+  return;
+}
+
+
+
 
       // Send the transaction
       const result = await sendUserOperation({
@@ -282,25 +334,48 @@ function BaseNameSetup() {
     }
   };
 
-  // Refetch name after successful transaction
+  // Set bypass flag immediately when transaction succeeds to allow redirect
   useEffect(() => {
-    if (isSuccess && refetch) {
-      setTimeout(() => {
-        refetch();
-      }, 3000);
+    if (isSuccess) {
+      console.log("Basename creation successful, setting bypass flag");
+      // Set a temporary flag to allow redirect immediately
+      // This will be cleared on next sign out
+      try {
+        localStorage.setItem(BYPASS_KEY, "true");
+        console.log("Bypass flag set in localStorage:", localStorage.getItem(BYPASS_KEY));
+        // Dispatch a custom event to notify BasenameGate immediately
+        const event = new CustomEvent("basename-created", { detail: { timestamp: Date.now() } });
+        window.dispatchEvent(event);
+        console.log("Basename-created event dispatched");
+      } catch (e) {
+        console.error("Failed to set bypass flag:", e);
+      }
     }
-  }, [isSuccess, refetch]);
+  }, [isSuccess]);
 
-  // Don't show if user already has a basename or is still loading
+  // Show loading while checking for basename
   if (isLoadingName) {
-    return null;
+    return (
+      <div className="card card--basename-setup">
+        <h2 className="card-title">Checking basename...</h2>
+        <p>Please wait while we check if you have a basename.</p>
+      </div>
+    );
   }
 
+  // If user already has a basename, this component shouldn't be shown
+  // (BasenameGate handles this, but just in case)
   if (baseName) {
-    return null; // User already has a basename
+    return (
+      <div className="card card--basename-setup">
+        <h2 className="card-title">✅ You already have a basename!</h2>
+        <p>Your basename: <strong>{baseName}</strong></p>
+      </div>
+    );
   }
 
-  // Show success message
+  // Show success message after creation
+  // BasenameGate will automatically show SignedInScreen once baseName is detected
   if (isSuccess) {
     return (
       <div className="card card--basename-setup">
@@ -312,6 +387,9 @@ function BaseNameSetup() {
               ? inputName
               : `${inputName.trim()}${BASE_SEPOLIA_NAME_SUFFIX}`}
           </strong>
+        </p>
+        <p style={{ marginTop: "1rem", fontSize: "0.875rem", color: "#666" }}>
+          Redirecting to main screen...
         </p>
       </div>
     );

@@ -1,16 +1,29 @@
 import { useName } from "@coinbase/onchainkit/identity";
-import { useAccount } from "wagmi";
+import { useEvmAddress } from "@coinbase/cdp-hooks";
 import { baseSepolia } from "viem/chains";
+import { useEffect } from "react";
 
 /**
  * Component that resolves and displays the Base name for the connected wallet address
  */
 function BaseNameResolver() {
-  const { address } = useAccount();
+  const { evmAddress: address } = useEvmAddress();
   const { data: baseName, isLoading, error } = useName({
     address: address || undefined,
     chain: baseSepolia,
   });
+
+  // Debug logging
+  useEffect(() => {
+    if (address) {
+      console.log("BaseNameResolver state:", {
+        address,
+        baseName,
+        isLoading,
+        error: error?.message,
+      });
+    }
+  }, [address, baseName, isLoading, error]);
 
   if (!address) {
     return null;
@@ -21,6 +34,7 @@ function BaseNameResolver() {
   }
 
   if (error) {
+    console.warn("BaseNameResolver error:", error);
     return null; // Silently fail if there's an error
   }
 
