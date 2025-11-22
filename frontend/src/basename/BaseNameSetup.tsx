@@ -420,18 +420,21 @@ try {
       {smartAccountAddress && (
         <div style={{
           padding: "0.75rem",
-          backgroundColor: "#f5f5f5",
+          backgroundColor: "var(--cdp-example-bg-low-contrast-color)",
           borderRadius: "0.5rem",
           marginBottom: "1rem",
           fontSize: "0.875rem",
+          color: "var(--cdp-example-text-color)",
         }}>
           <div style={{ marginBottom: "0.5rem" }}>
             <strong>Wallet Address:</strong>{" "}
             <code style={{
-              backgroundColor: "#fff",
+              backgroundColor: "var(--cdp-example-card-bg-color)",
+              color: "var(--cdp-example-text-color)",
               padding: "0.25rem 0.5rem",
               borderRadius: "0.25rem",
               fontSize: "0.8rem",
+              border: "1px solid var(--cdp-example-card-border-color)",
             }}>
               {smartAccountAddress}
             </code>
@@ -444,7 +447,7 @@ try {
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
-                  color: "#0052FF",
+                  color: "var(--cdp-example-accent-color)",
                   textDecoration: "underline",
                 }}
               >
