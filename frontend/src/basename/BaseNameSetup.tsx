@@ -395,10 +395,66 @@ try {
     );
   }
 
+  // Get smart account address for display and faucet link
+  let smartAccountAddress: string | null = null;
+  if (smartAccount) {
+    if (typeof smartAccount === "string") {
+      smartAccountAddress = smartAccount;
+    } else {
+      smartAccountAddress = (smartAccount as any)?.address || (smartAccount as any)?.id || address || null;
+    }
+  } else if (address) {
+    smartAccountAddress = address;
+  }
+
+  // Generate faucet link with user's address
+  const faucetLink = smartAccountAddress
+    ? `https://portal.cdp.coinbase.com/products/faucet?projectId=7d5a36cf-0376-47ed-8eb1-9e10848c6167&token=ETH&network=base-sepolia&address=${smartAccountAddress}`
+    : null;
+
   return (
     <div className="card card--basename-setup">
       <h2 className="card-title">Create Your Basename</h2>
       <p>Choose a unique name for your wallet address on Base Sepolia.</p>
+      
+      {smartAccountAddress && (
+        <div style={{
+          padding: "0.75rem",
+          backgroundColor: "#f5f5f5",
+          borderRadius: "0.5rem",
+          marginBottom: "1rem",
+          fontSize: "0.875rem",
+        }}>
+          <div style={{ marginBottom: "0.5rem" }}>
+            <strong>Wallet Address:</strong>{" "}
+            <code style={{
+              backgroundColor: "#fff",
+              padding: "0.25rem 0.5rem",
+              borderRadius: "0.25rem",
+              fontSize: "0.8rem",
+            }}>
+              {smartAccountAddress}
+            </code>
+          </div>
+          {faucetLink && (
+            <div>
+              <strong>Need ETH?</strong>{" "}
+              <a
+                href={faucetLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: "#0052FF",
+                  textDecoration: "underline",
+                }}
+              >
+                Get testnet ETH from the faucet
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+
       <p className="smart-account-info">
         ℹ️ <strong>Note:</strong> This will register your basename on Base Sepolia testnet. The registration requires a
         small fee (approximately 0.0001 ETH on testnet).
