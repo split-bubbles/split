@@ -317,6 +317,9 @@ class BrokerService {
       throw new Error('Qwen vision provider not configured');
     }
 
+    const transferAmount = ethers.parseEther("1.0"); // 1 OG in neuron
+    await this.broker!.ledger.transferFund(providerAddress, "inference", transferAmount);
+
     try {
       const { endpoint, model } = await this.broker!.inference.getServiceMetadata(providerAddress);
       const querySeed = `receipt:${Date.now()}:${finalImageUrl.substring(0, 50)}`;
@@ -422,6 +425,9 @@ class BrokerService {
     if (!providerAddress) {
       throw new Error('Deepseek reasoning provider not configured');
     }
+
+    const transferAmount = ethers.parseEther("1.0"); // 1 OG in neuron
+    await this.broker!.ledger.transferFund(providerAddress, "inference", transferAmount);
 
     try {
       const { endpoint, model } = await this.broker!.inference.getServiceMetadata(providerAddress);
