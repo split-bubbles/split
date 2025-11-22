@@ -38,7 +38,7 @@ function Header() {
     <header>
       <div className="header-inner">
         <div className="title-container">
-          <h1 className="site-title">CDP React StarterKit</h1>
+          <h1 className="site-title">Split Demo</h1>
           <span className="smart-badge">SMART</span>
         </div>
         <div className="user-info flex-row-container">
