@@ -58,7 +58,11 @@ function SignedInScreen() {
   }, [usdcBalance]);
 
   const handleQuickAddExpense = () => {
-    setActiveTab("expense");
+    // On mobile, switch to expense tab
+    if (window.innerWidth < 1024) {
+      setActiveTab("expense");
+    }
+    // On desktop, just trigger the modal
     setExpenseOpenTrigger((v) => v + 1);
   };
 
@@ -143,13 +147,19 @@ function SignedInScreen() {
         </div>
       </main>
       
+      {/* Desktop Expense Modal */}
+      <div className="desktop-expense-modal">
+        <AddExpense openTrigger={expenseOpenTrigger} isModal={true} />
+      </div>
+      
       {/* Floating Action Button - Quick Add Expense */}
       <button 
         className={`fab ${activeTab === "home" ? "fab-visible" : ""}`}
         onClick={handleQuickAddExpense}
         aria-label="Add expense"
       >
-        ➕
+        <span className="fab-text">Add Expense</span>
+        <span className="fab-icon">➕</span>
       </button>
       
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />

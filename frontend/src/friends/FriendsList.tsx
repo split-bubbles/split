@@ -20,40 +20,32 @@ function FriendListItem({
     l2ChainId: baseSepolia.id,
   });
 
+  const displayName = ensName || `${address.slice(0, 6)}...${address.slice(-4)}`;
+  const displayAddress = address.slice(0, 6) + "..." + address.slice(-4);
+
   return (
     <div
       style={{
-        padding: "0.75rem",
+        padding: "0.75rem 1rem",
         borderRadius: "0.5rem",
         border: "1px solid #ccc",
         display: "flex",
-        flexDirection: "column",
-        gap: "0.5rem",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        minHeight: "3rem",
+        height: "3rem",
+        width: "90%",
+        margin: "0 auto",
       }}
     >
-      <div>
-        <p style={{ margin: 0, fontWeight: "500" }}>
-          {ensName ? (
-            <span>{ensName}</span>
-          ) : (
-            <span>{address.slice(0, 6)}...{address.slice(-4)}</span>
-          )}
-        </p>
-        <p style={{ margin: 0, fontSize: "0.875rem", color: "#666" }}>
-          {ensName ? (
-            <span>{address.slice(0, 6)}...{address.slice(-4)}</span>
-          ) : (
-            <AddressLink address={address} />
-          )}
-        </p>
-        {sentRequestTransactions.has(address.toLowerCase()) && (
-          <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.75rem" }}>
-            <TransactionLink 
-              hash={sentRequestTransactions.get(address.toLowerCase())!} 
-              label="View Request Transaction" 
-            />
-          </p>
-        )}
+      <div style={{ display: "flex", alignItems: "center", flex: 1 }}>
+        <span style={{ fontWeight: "500", fontSize: "0.95rem" }}>
+          {displayName}
+        </span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <AddressLink address={address} />
       </div>
     </div>
   );
@@ -119,7 +111,7 @@ function FriendsList() {
   return (
     <div className="card card--friends-list">
       <h2 className="card-title">👥 Your Friends ({friends.length})</h2>
-      <div className="flex-col-container" style={{ gap: "0.5rem", maxHeight: "280px", overflowY: "auto" }}>
+      <div className="flex-col-container" style={{ gap: "0.5rem", maxHeight: "280px", overflowY: "auto", alignItems: "center" }}>
         {friends.map((friendAddress) => (
           <FriendListItem 
             key={friendAddress}

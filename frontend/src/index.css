@@ -928,27 +928,42 @@ input[type="checkbox"] {
   position: fixed;
   bottom: calc(80px + env(safe-area-inset-bottom));
   right: 1.5rem;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #2775CA 0%, #1e5aa8 100%);
-  color: white;
-  border: none;
-  box-shadow: 0 8px 16px rgba(39, 117, 202, 0.4);
-  cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 2rem;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 2rem;
+  background: #EEF3FF;
+  color: #2775CA;
+  border: 1px solid rgba(39, 117, 202, 0.3);
+  box-shadow: 0 8px 16px rgba(39, 117, 202, 0.2);
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  white-space: nowrap;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 200; /* Raised above bottom nav for clickability */
 }
 
+.fab-text {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.fab-icon {
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .fab:hover {
   transform: scale(1.1);
-  box-shadow: 0 12px 24px rgba(39, 117, 202, 0.5);
-  background: linear-gradient(135deg, #1e5aa8 0%, #2775CA 100%);
+  box-shadow: 0 12px 24px rgba(39, 117, 202, 0.3);
+  background: #E4F0FF;
+  border-color: rgba(39, 117, 202, 0.5);
 }
+
 
 .fab:active {
   transform: scale(0.95);
@@ -967,27 +982,68 @@ input[type="checkbox"] {
     display: flex;
     bottom: 2rem;
     right: 2rem;
-    background: linear-gradient(135deg, #2775CA 0%, #1e5aa8 100%);
-    box-shadow: 0 8px 16px rgba(39, 117, 202, 0.4);
+    background: #EEF3FF;
+    color: #2775CA;
+    border: 1px solid rgba(39, 117, 202, 0.3);
+    box-shadow: 0 8px 16px rgba(39, 117, 202, 0.2);
   }
   
   .fab:hover {
-    box-shadow: 0 12px 24px rgba(39, 117, 202, 0.5);
-    background: linear-gradient(135deg, #1e5aa8 0%, #2775CA 100%);
+    box-shadow: 0 12px 24px rgba(39, 117, 202, 0.3);
+    background: #E4F0FF;
+    border-color: rgba(39, 117, 202, 0.5);
   }
 }
 
-/* Ensure FAB uses USDC blue in light mode */
+/* Ensure FAB uses sky blue color in light mode */
 @media (prefers-color-scheme: light) {
   .fab {
-    background: linear-gradient(135deg, #2775CA 0%, #1e5aa8 100%) !important;
-    box-shadow: 0 8px 16px rgba(39, 117, 202, 0.4) !important;
+    background: #EEF3FF !important;
+    color: #2775CA !important;
+    border: 1px solid rgba(39, 117, 202, 0.3) !important;
+    box-shadow: 0 8px 16px rgba(39, 117, 202, 0.2) !important;
   }
   
   .fab:hover {
-    background: linear-gradient(135deg, #1e5aa8 0%, #2775CA 100%) !important;
-    box-shadow: 0 12px 24px rgba(39, 117, 202, 0.5) !important;
+    background: #E4F0FF !important;
+    border-color: rgba(39, 117, 202, 0.5) !important;
+    box-shadow: 0 12px 24px rgba(39, 117, 202, 0.3) !important;
   }
+}
+
+/* Desktop Expense Modal */
+.desktop-expense-modal {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .desktop-expense-modal {
+    display: block;
+  }
+}
+
+.expense-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2rem;
+}
+
+.expense-modal-content {
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
 /* Desktop adjustments */

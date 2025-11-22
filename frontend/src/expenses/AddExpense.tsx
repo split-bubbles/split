@@ -10,11 +10,12 @@ import { ParticipantAmountInput } from "./components/ParticipantAmountInput";
 import { SplitSummaryBar } from "./components/SplitSummaryBar";
 import { AiPanel } from "./components/AiPanel";
 
-interface AddExpenseProps { openTrigger?: number }
+interface AddExpenseProps { openTrigger?: number; isModal?: boolean }
 
-function AddExpense({ openTrigger }: AddExpenseProps) {
+function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
   const { evmAddress: currentAddress } = useEvmAddress();
   const [isOpen, setIsOpen] = useState(false);
+  const [lastTrigger, setLastTrigger] = useState(0);
   const [selectedFriends, setSelectedFriends] = useState<Set<Address>>(new Set());
   const [friends, setFriends] = useState<Address[]>([]);
   const [description, setDescription] = useState("");
@@ -46,9 +47,18 @@ function AddExpense({ openTrigger }: AddExpenseProps) {
     }
   }, [splitMode, totalAmount, selectedFriends]);
 
-  useEffect(() => { if (openTrigger && openTrigger > 0 && !isOpen) setIsOpen(true); }, [openTrigger, isOpen]);
+  useEffect(() => { 
+    if (openTrigger && openTrigger > 0 && openTrigger !== lastTrigger) {
+      setLastTrigger(openTrigger);
+      setIsOpen(true);
+    }
+  }, [openTrigger, lastTrigger]);
 
-  const handleCancel = () => {
+  const handleCancel = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setIsOpen(false);
     setSelectedFriends(new Set());
     setDescription("");
@@ -82,6 +92,9 @@ function AddExpense({ openTrigger }: AddExpenseProps) {
   const totalSplit = totalFriends + selfSplit;
 
   if (!isOpen) {
+    if (isModal) {
+      return null; // Don't show anything in modal when closed
+    }
     return (
       <>
         <div className="section-header"><h3>Create Expense</h3></div>
@@ -97,12 +110,11 @@ function AddExpense({ openTrigger }: AddExpenseProps) {
     );
   }
 
-  return (
-    <div className="card card--add-expense" style={{ maxWidth: "100%", height: "100vh", display: "flex", flexDirection: "column", padding: 0 }}>
+  const content = (
+    <div className="card card--add-expense" style={{ maxWidth: "100%", height: isModal ? "auto" : "100vh", maxHeight: isModal ? "90vh" : "100vh", display: "flex", flexDirection: "column", padding: 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1.25rem", borderBottom: "1px solid #334155", backgroundColor: "#0f172a", color: "#e2e8f0" }}>
-        <button onClick={handleCancel} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#666" }}>✕</button>
         <h2 className="card-title" style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}>Add an expense</h2>
-        <button onClick={handleSaveExpense} style={{ background: "none", border: "none", fontSize: "1rem", fontWeight: 600, cursor: "pointer", color: "#1cc29f" }}>Save</button>
+        <button onClick={(e) => handleCancel(e)} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#e2e8f0", padding: "0.25rem", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "1.25rem", backgroundColor: "#0f172a" }}>
         <div className="flex-col-container" style={{ gap: "1.5rem" }}>
@@ -158,6 +170,22 @@ function AddExpense({ openTrigger }: AddExpenseProps) {
       </div>
     </div>
   );
+
+  if (isModal && isOpen) {
+    return (
+      <div className="expense-modal-overlay" onClick={handleCancel}>
+        <div className="expense-modal-content" onClick={(e) => e.stopPropagation()}>
+          {content}
+        </div>
+      </div>
+    );
+  }
+
+  if (!isModal) {
+    return content;
+  }
+
+  return null;
 }
 
 export default AddExpense;
