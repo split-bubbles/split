@@ -7,6 +7,7 @@ import { brokerService, OFFICIAL_PROVIDERS } from './services/brokerService';
 export const initializeApplication = async (): Promise<void> => {
   try {
     console.log('🔄 Initializing application...');
+    return;
     
     // Check if ledger exists, create with default values if not
     try {

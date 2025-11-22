@@ -40,7 +40,7 @@ export interface SplitResult {
   rawPlan?: any; // original split plan from backend for iterative refinement
 }
 
-const BASE_URL = "/reciepts"; // backend spelling
+const BASE_URL = `${import.meta.env.VITE_API_PREFIX}/reciepts`; // backend spelling
 const USE_MOCK = (import.meta as any).env?.VITE_AI_MOCK === 'true';
 
 function mockParsedReceipt(): ParsedReceipt {

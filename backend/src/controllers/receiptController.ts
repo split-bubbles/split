@@ -96,6 +96,50 @@ export const parseReceipt = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'base64Image must be a string' });
     }
 
+    // TESTING MODE: Set to true to use mock responses without spending credits
+    const USE_MOCK_TESTING = true;
+    
+    if (USE_MOCK_TESTING) {
+      // Simulate network delay (1-3 seconds)
+      const delay = Math.floor(Math.random() * 2000) + 1000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      // Randomly succeed (70%) or fail (30%)
+      const shouldSucceed = Math.random() > 0.3;
+      
+      if (shouldSucceed) {
+        console.log(`[MOCK] Parse receipt succeeded after ${delay}ms`);
+        return res.status(200).json({
+          success: true,
+          receipt: {
+            currency: 'USD',
+            total: 36.8,
+            subtotal: 32,
+            tax: 0,
+            tip: 4.8,
+            items: [
+              { name: 'TACOS', price: 20 },
+              { name: 'DIET COKE', price: 2 },
+              { name: 'SMART WATER', price: 3 },
+              { name: 'CAKE', price: 7 }
+            ]
+          },
+          metadata: {
+            model: 'mock-vision-model',
+            provider: '0xMOCK',
+            isValid: true,
+            chatId: `mock-${Date.now()}`
+          }
+        });
+      } else {
+        console.log(`[MOCK] Parse receipt failed after ${delay}ms`);
+        return res.status(500).json({
+          success: false,
+          error: 'Mock error: Unable to process receipt image. Please try again.'
+        });
+      }
+    }
+
     const { receipt, metadata } = await brokerService.parseReceipt(imageUrl, base64Image);
 
     return res.status(200).json({ success: true, receipt, metadata });
@@ -225,6 +269,57 @@ export const splitExpense = async (req: Request, res: Response) => {
         success: false, 
         error: 'participants is required and must be a non-empty array' 
       });
+    }
+
+    // TESTING MODE: Set to true to use mock responses without spending credits
+    const USE_MOCK_TESTING = true;
+    
+    if (USE_MOCK_TESTING) {
+      // Simulate network delay (1.5-4 seconds for reasoning)
+      const delay = Math.floor(Math.random() * 2500) + 1500;
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      // Randomly succeed (75%) or fail (25%)
+      const shouldSucceed = Math.random() > 0.25;
+      
+      if (shouldSucceed) {
+        console.log(`[MOCK] Split expense succeeded after ${delay}ms`);
+        
+        const total = receipt.total || 0;
+        const numParticipants = participants.length;
+        const splitAmount = numParticipants > 0 ? (total / numParticipants).toFixed(2) : '0.00';
+        
+        return res.status(200).json({
+          success: true,
+          split: {
+            summary: `Mock AI split: Each person owes $${splitAmount}`,
+            currency: receipt.currency || 'USD',
+            total: receipt.total,
+            payer: participants[0]?.ens || 'unknown',
+            participants: participants.map(p => ({
+              ens: p.ens,
+              paid: p.paid || 0,
+              owes: parseFloat(splitAmount),
+              comment: `Equal split based on ${numParticipants} participants`
+            })),
+            openQuestions: [
+              'This is a mock response. Set USE_MOCK_TESTING=false to use real AI.'
+            ]
+          },
+          metadata: {
+            model: 'mock-reasoning-model',
+            provider: '0xMOCK',
+            isValid: true,
+            chatId: `mock-${Date.now()}`
+          }
+        });
+      } else {
+        console.log(`[MOCK] Split expense failed after ${delay}ms`);
+        return res.status(500).json({
+          success: false,
+          error: 'Mock error: AI reasoning service temporarily unavailable. Please try again.'
+        });
+      }
     }
 
     const { split, metadata } = await brokerService.splitExpense(

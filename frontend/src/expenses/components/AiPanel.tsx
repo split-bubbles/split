@@ -29,8 +29,10 @@ export const AiPanel: React.FC<AiPanelProps> = ({ mode, participants, selfAddres
         effectiveParsed = await parseReceipt(imageData ? { base64Image: imageData } : { imageUrl });
         setParsed(effectiveParsed);
       } catch (e: any) {
-        console.warn('AI parse failed, proceeding without items', e);
-        effectiveParsed = { items: [] };
+        console.error('Cannot parse image', e);
+        setError(e.message || 'Failed to parse receipt image.');
+        setLoading(false);
+        return; // Abort split if parse failed
       }
     }
     try {
@@ -44,9 +46,10 @@ export const AiPanel: React.FC<AiPanelProps> = ({ mode, participants, selfAddres
       setSplitResult(res);
       onApplySplit(res.allocations, res.selfAmount);
       setPriorPlan(res.rawPlan);
+      setError(null); // Clear any previous errors
     } catch (e: any) {
-      console.warn('Unified AI split failed', e);
-      setError('AI split unavailable. Adjust amounts manually.');
+      console.error('Unified AI split failed', e);
+      setError(e.message || 'AI split failed. Please try again or adjust amounts manually.');
     } finally { setLoading(false); }
   }
 
@@ -143,7 +146,7 @@ export const AiPanel: React.FC<AiPanelProps> = ({ mode, participants, selfAddres
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
         <button
           onClick={handleUnifiedSplit}
-          disabled={loading || participants.length === 0}
+          disabled={loading || participants.length === 0 || !!error}
           style={{
             flex: 1,
             padding: '10px 14px',

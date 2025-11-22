@@ -31,8 +31,8 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 const apiPrefix = '/api';
 
 // Register routes
-app.use(`${apiPrefix}/account`, accountRoutes);
-app.use(`${apiPrefix}/services`, serviceRoutes);
+// app.use(`${apiPrefix}/account`, accountRoutes);
+// app.use(`${apiPrefix}/services`, serviceRoutes);
 app.use(`${apiPrefix}/reciepts`, receiptRoutes);
 
 // Root route with basic info
@@ -42,8 +42,8 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     documentation: '/docs',
     endpoints: {
-      account: `${apiPrefix}/account`,
-      services: `${apiPrefix}/services`,
+      // account: `${apiPrefix}/account`,
+      // services: `${apiPrefix}/services`,
       reciepts: `${apiPrefix}/reciepts`
     }
   });
