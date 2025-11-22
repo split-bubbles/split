@@ -37,11 +37,46 @@ function Header() {
   }, [isCopied]);
 
   return (
-    <header>
-      <div className="header-inner">
+    <header
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        width: "100vw",
+        zIndex: 50,
+        background: "linear-gradient(180deg,#0f172a 0%,#0f172a 60%,#0f172aef 100%)",
+        borderBottom: "1px solid #1e293b"
+      }}
+    >
+      <div
+        className="header-inner"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "0.6rem 1.5rem",
+          maxWidth: "1400px",
+          margin: "0 auto"
+        }}
+      >
         <div className="title-container">
-          <h1 className="site-title">💸 Splits</h1>
-          <span className="smart-badge">SMART</span>
+          <h1 className="site-title" style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600, color: "#f1f5f9" }}>💸 Splits</h1>
+          <span
+            className="smart-badge"
+            style={{
+              marginLeft: "0.5rem",
+              fontSize: "0.55rem",
+              letterSpacing: "1px",
+              fontWeight: 700,
+              padding: "0.25rem 0.4rem",
+              backgroundColor: "#14532d",
+              color: "#f1f5f9",
+              borderRadius: "0.35rem",
+            }}
+          >
+            SMART
+          </span>
         </div>
         <div className="user-info flex-row-container" style={{ gap: "1rem" }}>
           {evmAddress && (
@@ -50,12 +85,14 @@ function Header() {
               className="flex-row-container copy-address-button"
               onClick={copyAddress}
               style={{
-                padding: "0.5rem 0.75rem",
-                borderRadius: "0.75rem",
-                backgroundColor: "var(--cdp-example-bg-low-contrast-color)",
-                border: "1px solid var(--cdp-example-card-border-color)",
+                padding: "0.45rem 0.75rem",
+                borderRadius: "0.6rem",
+                backgroundColor: "#1e293b",
+                border: "1px solid #334155",
                 transition: "all 0.2s ease",
                 gap: "0.5rem",
+                color: "#e2e8f0",
+                fontSize: "0.75rem"
               }}
             >
               {!isCopied && (
