@@ -1,23 +1,30 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Rethink+Sans:ital,wght@0,400..800;1,400..800&display=swap");
 
 :root {
-  --cdp-example-page-bg-color: #eaeaea;
-  --cdp-example-page-bg-alt-color: #eef0f3;
-  --cdp-example-bg-overlay-color: rgba(0, 0, 0, 0.25);
-  --cdp-example-bg-skeleton-color: rgba(0, 0, 0, 0.1);
-  --cdp-example-text-color: #111111;
-  --cdp-example-text-secondary-color: #757575;
-  --cdp-example-accent-color: #008080;
-  --cdp-example-accent-hover-color: #016969;
+  --cdp-example-page-bg-color: #f5f7fa;
+  --cdp-example-page-bg-alt-color: #e8ecf1;
+  --cdp-example-bg-overlay-color: rgba(0, 0, 0, 0.15);
+  --cdp-example-bg-skeleton-color: rgba(0, 0, 0, 0.08);
+  --cdp-example-text-color: #1a202c;
+  --cdp-example-text-secondary-color: #64748b;
+  --cdp-example-accent-color: #0052FF;
+  --cdp-example-accent-hover-color: #0041cc;
   --cdp-example-accent-foreground-color: #ffffff;
-  --cdp-example-bg-low-contrast-color: #eeeeee;
+  --cdp-example-bg-low-contrast-color: #f1f5f9;
   --cdp-example-cdp-page-bg-color: #ffffff;
-  --cdp-example-cdp-page-bg-alt-color: #eef0f3;
+  --cdp-example-cdp-page-bg-alt-color: #fafbfc;
   --cdp-example-card-bg-color: #ffffff;
-  --cdp-example-card-border-color: #dcdcdc;
-  --cdp-example-card-max-width: 30rem;
+  --cdp-example-card-border-color: #e2e8f0;
+  --cdp-example-card-max-width: 28rem;
   --cdp-example-base-font-size: 16px;
-  --cdp-example-font-family: "Rethink Sans", system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --cdp-example-font-family: "Rethink Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --cdp-example-success-color: #10b981;
+  --cdp-example-warning-color: #f59e0b;
+  --cdp-example-error-color: #ef4444;
+  --cdp-example-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --cdp-example-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --cdp-example-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --cdp-example-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 
   background-color: var(--cdp-example-page-bg-color);
   color: var(--cdp-example-card-border-color);
@@ -34,20 +41,24 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --cdp-example-page-bg-color: #0a0b0d;
-    --cdp-example-page-bg-alt-color: #333333;
-    --cdp-example-bg-overlay-color: rgba(0, 0, 0, 0.25);
-    --cdp-example-bg-skeleton-color: rgba(255, 255, 255, 0.1);
-    --cdp-example-text-color: #fafafa;
-    --cdp-example-text-secondary-color: #8a919e;
-    --cdp-example-accent-color: #00adad;
-    --cdp-example-accent-hover-color: #04c0c0;
-    --cdp-example-accent-foreground-color: #0a0b0d;
-    --cdp-example-bg-low-contrast-color: #32353d;
-    --cdp-example-cdp-page-bg-color: #0a0b0d;
-    --cdp-example-cdp-page-bg-alt-color: #333333;
-    --cdp-example-card-bg-color: #141519;
-    --cdp-example-card-border-color: #24262a;
+    --cdp-example-page-bg-color: #0f172a;
+    --cdp-example-page-bg-alt-color: #1e293b;
+    --cdp-example-bg-overlay-color: rgba(0, 0, 0, 0.4);
+    --cdp-example-bg-skeleton-color: rgba(255, 255, 255, 0.08);
+    --cdp-example-text-color: #f1f5f9;
+    --cdp-example-text-secondary-color: #94a3b8;
+    --cdp-example-accent-color: #3b82f6;
+    --cdp-example-accent-hover-color: #60a5fa;
+    --cdp-example-accent-foreground-color: #ffffff;
+    --cdp-example-bg-low-contrast-color: #1e293b;
+    --cdp-example-cdp-page-bg-color: #0f172a;
+    --cdp-example-cdp-page-bg-alt-color: #1e293b;
+    --cdp-example-card-bg-color: #1e293b;
+    --cdp-example-card-border-color: #334155;
+    --cdp-example-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --cdp-example-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    --cdp-example-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+    --cdp-example-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
   }
 }
 
@@ -132,13 +143,23 @@ hr {
   color: var(--cdp-example-text-color);
   margin: 0 auto;
   width: 100%;
+  background: linear-gradient(180deg, 
+    var(--cdp-example-page-bg-color) 0%, 
+    var(--cdp-example-page-bg-alt-color) 100%);
+  min-height: 100vh;
 }
 
 header {
   background-color: var(--cdp-example-card-bg-color);
   border-bottom: 1px solid var(--cdp-example-card-border-color);
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
   width: 100%;
+  box-shadow: var(--cdp-example-shadow-sm);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  flex-shrink: 0;
 }
 
 header .wallet-address {
@@ -149,9 +170,10 @@ header .wallet-address {
   align-items: center;
   display: flex;
   flex-direction: column;
+  gap: 0.75rem;
   justify-content: space-between;
   margin: 0 auto;
-  max-width: 75rem;
+  max-width: 80rem;
   text-align: center;
 }
 
@@ -174,19 +196,22 @@ header .wallet-address {
   word-break: break-all;
 }
 
+/* Legacy main styles - kept for compatibility */
 .main {
-  padding: 4rem 0.5rem;
+  padding: 2rem 1rem;
   width: 100%;
+  min-height: calc(100vh - 120px);
 }
 
 .main-inner {
-  gap: 1rem;
+  gap: 1.5rem;
   width: 100%;
   max-width: 100%;
   display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: auto;
   justify-items: center;
+  margin: 0 auto;
 }
 
 .main-inner > .card {
@@ -202,11 +227,15 @@ header .wallet-address {
 }
 
 .site-title {
-  font-size: 1.2rem;
-  font-weight: 400;
+  font-size: 1.5rem;
+  font-weight: 700;
   line-height: 1.2;
   margin: 0;
   margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #0052FF 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .site-title br {
@@ -214,25 +243,27 @@ header .wallet-address {
 }
 
 .smart-badge {
-  background-color: rgba(76, 175, 80, 0.15);
-  color: #4caf50;
-  border-radius: 12px;
-  padding: 0.2rem 0.6rem;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.15) 100%);
+  color: #059669;
+  border-radius: 1rem;
+  padding: 0.25rem 0.75rem;
   font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.025em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  border: 1px solid rgba(76, 175, 80, 0.3);
+  border: 1px solid rgba(16, 185, 129, 0.3);
   display: inline-block;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
 }
 
 .smart-account-info {
-  background-color: rgba(76, 175, 80, 0.1);
-  border: 1px solid rgba(76, 175, 80, 0.3);
-  border-radius: 0.5rem;
-  padding: 0.75rem;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 0.75rem;
+  padding: 1rem;
   margin: 0.5rem 0;
   font-size: 0.9rem;
+  box-shadow: var(--cdp-example-shadow-sm);
 }
 
 .smart-account-info:last-child {
@@ -240,43 +271,59 @@ header .wallet-address {
 }
 
 .success-message {
-  background-color: rgba(76, 175, 80, 0.1);
-  border: 1px solid rgba(76, 175, 80, 0.3);
-  border-radius: 0.5rem;
-  padding: 0.75rem;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: 0.75rem;
+  padding: 1rem;
   margin: 0.5rem 0;
   font-size: 0.9rem;
-  color: var(--cdp-example-success-color, #4caf50);
+  color: var(--cdp-example-success-color);
+  box-shadow: var(--cdp-example-shadow-sm);
 }
 
 .card {
   align-items: stretch;
   background-color: var(--cdp-example-card-bg-color);
   border: 1px solid var(--cdp-example-card-border-color);
-  border-radius: 1rem;
+  border-radius: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem;
   justify-content: flex-start;
   max-width: var(--cdp-example-card-max-width);
-  padding: 2rem 1rem;
+  padding: 1.75rem 1.5rem;
   text-align: center;
   width: 100%;
   min-height: 100%;
+  box-shadow: var(--cdp-example-shadow-md);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover {
+  box-shadow: var(--cdp-example-shadow-lg);
+  transform: translateY(-2px);
 }
 
 .card-title {
-  font-size: 1.25rem;
-  font-weight: 500;
-  line-height: 1.2;
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1.3;
   margin: 0;
+  color: var(--cdp-example-text-color);
+  letter-spacing: -0.01em;
 }
 
 .loading--balance {
   border-radius: 9999em;
   display: inline-block;
-  height: 2.25rem;
-  width: 7rem;
+  height: 2.5rem;
+  width: 10rem;
+  background: linear-gradient(90deg, 
+    var(--cdp-example-bg-skeleton-color) 0%, 
+    rgba(0, 82, 255, 0.1) 50%, 
+    var(--cdp-example-bg-skeleton-color) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 
 .loading--text {
@@ -284,21 +331,35 @@ header .wallet-address {
   border-radius: 9999em;
   margin: 0.25rem 0;
   width: 20rem;
+  background: linear-gradient(90deg, 
+    var(--cdp-example-bg-skeleton-color) 0%, 
+    rgba(0, 82, 255, 0.1) 50%, 
+    var(--cdp-example-bg-skeleton-color) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 
 .loading--btn {
   border-radius: 9999em;
   height: 3.5rem;
   width: 9.375rem;
+  background: linear-gradient(90deg, 
+    var(--cdp-example-bg-skeleton-color) 0%, 
+    rgba(0, 82, 255, 0.1) 50%, 
+    var(--cdp-example-bg-skeleton-color) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 
 .user-balance {
   font-size: 1.5rem;
   font-weight: 400;
+  padding: 1rem 0;
 }
 
 .user-balance .flex-row-container {
   justify-content: center;
+  align-items: center;
 }
 
 .balance-icon {
@@ -307,6 +368,17 @@ header .wallet-address {
   height: 1.5rem;
   margin-right: 0.5rem;
   width: auto;
+  filter: drop-shadow(0 2px 4px rgba(0, 82, 255, 0.2));
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
 }
 
 .copy-address-button {
@@ -328,9 +400,56 @@ header .wallet-address {
 }
 
 .tx-button {
-  padding-left: 2rem;
-  padding-right: 2rem;
+  padding: 0.875rem 2rem;
   min-width: 11.75rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--cdp-example-shadow-sm);
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.tx-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--cdp-example-shadow-md);
+}
+
+.tx-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--cdp-example-shadow-sm);
+}
+
+.tx-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Input styles */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+textarea,
+select {
+  font-family: var(--cdp-example-font-family);
+  transition: all 0.2s ease;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--cdp-example-accent-color);
+  box-shadow: 0 0 0 3px rgba(0, 82, 255, 0.1);
+}
+
+/* Checkbox styles */
+input[type="checkbox"] {
+  accent-color: var(--cdp-example-accent-color);
+  cursor: pointer;
 }
 
 .page-heading {
@@ -357,10 +476,11 @@ header .wallet-address {
   align-items: center;
 }
 
-@media (min-width: 540px) {
+@media (min-width: 640px) {
   .header-inner {
     flex-direction: row;
     text-align: left;
+    gap: 1rem;
   }
 
   .user-info {
@@ -376,37 +496,349 @@ header .wallet-address {
   }
 
   .main {
-    padding: 4rem 1rem;
+    padding: 2.5rem 1.5rem;
+  }
+
+  .card {
+    padding: 2rem 1.75rem;
   }
 }
 
-@media (min-width: 860px) {
+@media (min-width: 1024px) {
   :root {
-    --cdp-example-card-max-width: 35rem;
+    --cdp-example-card-max-width: 32rem;
   }
 
   .main {
-    padding: 4rem 2rem;
+    padding: 3rem 2rem;
   }
 
   .main-inner {
     grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(2, 1fr);
-    align-items: stretch;
-    max-width: calc(var(--cdp-example-card-max-width) * 2 + 1rem);
+    gap: 2rem;
+    align-items: start;
+    max-width: calc(var(--cdp-example-card-max-width) * 2 + 2rem);
     margin: 0 auto;
     justify-items: stretch;
   }
 
   .main-inner > .card {
     max-width: 100%;
-    height: 100%;
+  }
+  
+  /* Make balance card span full width on desktop */
+  .card--user-balance {
+    grid-column: 1 / -1;
+  }
+  
+  /* Make expense card larger when open */
+  .card--add-expense:has(.expense-details),
+  .card--add-expense:has(.review-screen) {
+    grid-column: 1 / -1;
+    max-width: 60rem;
+  }
+}
+
+@media (min-width: 1440px) {
+  :root {
+    --cdp-example-card-max-width: 36rem;
+  }
+  
+  .main-inner {
+    max-width: calc(var(--cdp-example-card-max-width) * 2 + 2rem);
   }
 }
 
 @media (min-width: 1920px) {
   :root {
-    --cdp-base-font-size: 20px;
+    --cdp-base-font-size: 18px;
+  }
+}
+
+/* App Container - Mobile App Layout */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: linear-gradient(180deg, 
+    var(--cdp-example-page-bg-color) 0%, 
+    var(--cdp-example-page-bg-alt-color) 100%);
+}
+
+/* Main Content Area */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 80px; /* Space for bottom nav */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+.tab-content {
+  padding: 1.5rem 1rem;
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: calc(100vh - 180px);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--cdp-example-card-bg-color);
+  border-top: 1px solid var(--cdp-example-card-border-color);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom));
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--cdp-example-text-secondary-color);
+  flex: 1;
+  max-width: 120px;
+}
+
+.bottom-nav-item:hover {
+  color: var(--cdp-example-accent-color);
+}
+
+.bottom-nav-item.active {
+  color: var(--cdp-example-accent-color);
+  position: relative;
+}
+
+.bottom-nav-item.active::before {
+  content: "";
+  position: absolute;
+  top: -0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--cdp-example-accent-color), transparent);
+  border-radius: 2px;
+}
+
+.bottom-nav-item.active .nav-icon {
+  transform: scale(1.15);
+  filter: drop-shadow(0 2px 8px rgba(0, 82, 255, 0.3));
+}
+
+.nav-icon {
+  font-size: 1.5rem;
+  transition: transform 0.2s ease;
+}
+
+.nav-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* Section Headers */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.section-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--cdp-example-text-color);
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--cdp-example-text-secondary-color);
+  min-height: 300px;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 1.125rem;
+  font-weight: 500;
+  margin: 0.5rem 0;
+  color: var(--cdp-example-text-color);
+}
+
+.empty-subtitle {
+  font-size: 0.875rem !important;
+  color: var(--cdp-example-text-secondary-color) !important;
+  max-width: 300px;
+}
+
+/* Settings List */
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--cdp-example-bg-low-contrast-color);
+  border-radius: 0.75rem;
+  border: 1px solid var(--cdp-example-card-border-color);
+  font-size: 0.95rem;
+}
+
+.setting-value {
+  font-weight: 500;
+  color: var(--cdp-example-accent-color);
+}
+
+/* Adjust main for mobile app layout */
+.main-content .card {
+  border-radius: 1.25rem;
+  box-shadow: var(--cdp-example-shadow-md);
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 639px) {
+  .site-title {
+    font-size: 1.25rem;
+  }
+  
+  .card {
+    border-radius: 1rem;
+  }
+  
+  .card-title {
+    font-size: 1.25rem;
+  }
+  
+  .wallet-address {
+    font-size: 0.75rem;
+  }
+  
+  header {
+    padding: 0.875rem 1rem;
+  }
+  
+  .tab-content {
+    padding: 1rem;
+  }
+}
+
+/* Floating Action Button */
+.fab {
+  position: fixed;
+  bottom: calc(80px + env(safe-area-inset-bottom));
+  right: 1.5rem;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0052FF 0%, #3b82f6 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 8px 16px rgba(0, 82, 255, 0.3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 50;
+}
+
+.fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 12px 24px rgba(0, 82, 255, 0.4);
+}
+
+.fab:active {
+  transform: scale(0.95);
+}
+
+/* Desktop adjustments */
+@media (min-width: 1024px) {
+  .bottom-nav {
+    display: none;
+  }
+  
+  .fab {
+    display: none;
+  }
+  
+  .app-container {
+    overflow: visible;
+    height: auto;
+  }
+  
+  .main-content {
+    overflow: visible;
+    padding-bottom: 2rem;
+  }
+  
+  .tab-content {
+    padding: 2rem 1.5rem;
+    max-width: 1200px;
+  }
+  
+  /* Show all tabs on desktop in grid */
+  .tab-content {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+  
+  .tab-content > * {
+    grid-column: span 1;
+  }
+  
+  .card--user-balance {
+    grid-column: 1 / -1;
   }
 }
 
@@ -423,9 +855,9 @@ header .wallet-address {
 
 @keyframes shimmer {
   0% {
-    transform: translateX(-100%);
+    background-position: 200% 0;
   }
   100% {
-    transform: translateX(100%);
+    background-position: -200% 0;
   }
 }

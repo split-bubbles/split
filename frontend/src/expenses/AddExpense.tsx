@@ -22,12 +22,6 @@ interface Receipt {
   items?: ExpenseItem[];
 }
 
-interface ParticipantSplit {
-  address: Address;
-  owes: number;
-  comment?: string;
-}
-
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000/api";
 
 /**
@@ -321,17 +315,35 @@ function AddExpense() {
 
   if (!isOpen) {
     return (
-      <div className="card card--add-expense">
-        <h2 className="card-title">Add Expense</h2>
-        <p>Create a new expense to split with your friends.</p>
-        <Button
-          type="button"
-          onClick={handleAddExpense}
-          className="tx-button"
-        >
-          Add Expense
-        </Button>
-      </div>
+      <>
+        <div className="section-header">
+          <h3>Create Expense</h3>
+        </div>
+        <div className="card card--add-expense">
+          <div style={{ textAlign: "center", padding: "1rem 0" }}>
+            <span style={{ fontSize: "3rem", display: "block", marginBottom: "1rem" }}>💸</span>
+            <h2 className="card-title" style={{ marginBottom: "0.5rem" }}>New Expense</h2>
+            <p style={{ color: "var(--cdp-example-text-secondary-color)", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
+              Split bills with friends using AI or manual entry
+            </p>
+            <Button
+              type="button"
+              onClick={handleAddExpense}
+              className="tx-button"
+              style={{
+                background: "linear-gradient(135deg, #0052FF 0%, #3b82f6 100%)",
+                color: "white",
+                fontSize: "1rem",
+                fontWeight: "600",
+                width: "100%",
+                maxWidth: "300px",
+              }}
+            >
+              ✨ Start New Expense
+            </Button>
+          </div>
+        </div>
+      </>
     );
   }
 
@@ -339,7 +351,8 @@ function AddExpense() {
   if (currentStep === "select-friends") {
     return (
       <div className="card card--add-expense">
-        <h2 className="card-title">Add Expense - Select Friends</h2>
+        <h2 className="card-title">👥 Select Friends</h2>
+        <p style={{ color: "var(--cdp-example-text-secondary-color)", fontSize: "0.9rem", margin: "-0.5rem 0 0.5rem" }}>Step 1 of 3</p>
         
         <div className="flex-col-container" style={{ gap: "1rem" }}>
           <div className="flex-col-container" style={{ gap: "0.5rem" }}>
@@ -437,8 +450,9 @@ function AddExpense() {
   // Step 2: Expense Details
   if (currentStep === "expense-details") {
     return (
-      <div className="card card--add-expense" style={{ maxWidth: "800px" }}>
-        <h2 className="card-title">Add Expense - Details</h2>
+      <div className="card card--add-expense expense-details" style={{ maxWidth: "100%" }}>
+        <h2 className="card-title">📝 Expense Details</h2>
+        <p style={{ color: "var(--cdp-example-text-secondary-color)", fontSize: "0.9rem", margin: "-0.5rem 0 0.5rem" }}>Step 2 of 3 - Add details manually or use AI</p>
         
         <div className="flex-col-container" style={{ gap: "1.5rem" }}>
           {/* Basic Info */}
@@ -756,8 +770,9 @@ function AddExpense() {
   // Step 3: Review & Confirm
   if (currentStep === "review") {
     return (
-      <div className="card card--add-expense">
-        <h2 className="card-title">Review Expense</h2>
+      <div className="card card--add-expense review-screen">
+        <h2 className="card-title">✅ Review & Confirm</h2>
+        <p style={{ color: "var(--cdp-example-text-secondary-color)", fontSize: "0.9rem", margin: "-0.5rem 0 0.5rem" }}>Step 3 of 3 - Final review</p>
         
         <div className="flex-col-container" style={{ gap: "1.5rem" }}>
           {/* Summary */}

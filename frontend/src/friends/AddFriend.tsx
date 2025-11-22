@@ -297,8 +297,8 @@ function AddFriend() {
 
   return (
     <div className="card card--add-friend">
-      <h2 className="card-title">Send Friend Request</h2>
-      <p>Send a friend request by entering their Ethereum address or ENS name.</p>
+      <h2 className="card-title">👋 Add Friends</h2>
+      <p style={{ color: "var(--cdp-example-text-secondary-color)", fontSize: "0.95rem" }}>Send a friend request by entering their address or ENS name</p>
 
       <div className="flex-col-container" style={{ gap: "1rem" }}>
         <div className="flex-col-container" style={{ gap: "0.5rem" }}>

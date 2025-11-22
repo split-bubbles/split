@@ -40,15 +40,23 @@ function Header() {
     <header>
       <div className="header-inner">
         <div className="title-container">
-          <h1 className="site-title">Split Demo</h1>
+          <h1 className="site-title">💸 Splits</h1>
           <span className="smart-badge">SMART</span>
         </div>
-        <div className="user-info flex-row-container">
+        <div className="user-info flex-row-container" style={{ gap: "1rem" }}>
           {evmAddress && (
             <button
               aria-label="copy wallet address"
               className="flex-row-container copy-address-button"
               onClick={copyAddress}
+              style={{
+                padding: "0.5rem 0.75rem",
+                borderRadius: "0.75rem",
+                backgroundColor: "var(--cdp-example-bg-low-contrast-color)",
+                border: "1px solid var(--cdp-example-card-border-color)",
+                transition: "all 0.2s ease",
+                gap: "0.5rem",
+              }}
             >
               {!isCopied && (
                 <>
@@ -57,7 +65,7 @@ function Header() {
                 </>
               )}
               {isCopied && <IconCheck className="user-icon user-icon--check" />}
-              <span className="wallet-address">
+              <span className="wallet-address" style={{ fontSize: "0.875rem" }}>
                 <BaseNameResolver />
                 {evmAddress && <span>{formatAddress(evmAddress)}</span>}
               </span>

@@ -232,17 +232,17 @@ function PendingApprovals() {
   if (pendingRequestAddresses.length === 0 && !isLoading) {
     return (
       <div className="card card--pending-approvals">
-        <h2 className="card-title">Pending Approvals</h2>
-        <p style={{ color: "#666", fontSize: "0.875rem" }}>No pending friend requests.</p>
+        <h2 className="card-title">⏳ Pending Approvals</h2>
+        <p style={{ color: "var(--cdp-example-text-secondary-color)", fontSize: "0.95rem" }}>No pending friend requests</p>
       </div>
     );
   }
 
   return (
     <div className="card card--pending-approvals">
-      <h2 className="card-title">Pending Approvals ({pendingRequestAddresses.length})</h2>
-      <p style={{ fontSize: "0.875rem", color: "#666", marginBottom: "1rem" }}>
-        You have {pendingRequestAddresses.length} pending friend request{pendingRequestAddresses.length !== 1 ? "s" : ""}.
+      <h2 className="card-title">⏳ Pending Approvals ({pendingRequestAddresses.length})</h2>
+      <p style={{ fontSize: "0.95rem", color: "var(--cdp-example-text-secondary-color)", marginBottom: "1rem" }}>
+        You have {pendingRequestAddresses.length} friend request{pendingRequestAddresses.length !== 1 ? "s" : ""} to review
       </p>
 
       <div className="flex-col-container" style={{ gap: "0.75rem" }}>

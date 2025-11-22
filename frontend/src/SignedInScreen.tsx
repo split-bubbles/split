@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { formatUnits, type Address } from "viem";
 import { useEvmAddress } from "@coinbase/cdp-hooks";
 import { useReadContract } from "./hooks/useReadContract";
 
 import Header from "./common/Header";
+import BottomNav, { type TabType } from "./common/BottomNav";
 import UserBalance from "./balance/UserBalance";
 import AddFriend from "./friends/AddFriend";
 import PendingApprovals from "./friends/PendingApprovals";
@@ -27,9 +28,11 @@ const ERC20_ABI = [
 /**
  * The Signed In screen
  * Now using Wagmi hooks for balance fetching
+ * Mobile-app style with bottom navigation
  */
 function SignedInScreen() {
   const { evmAddress: address } = useEvmAddress();
+  const [activeTab, setActiveTab] = useState<TabType>("home");
 
   // Fetch USDC balance using Wagmi
   const {
@@ -52,26 +55,94 @@ function SignedInScreen() {
     return formatUnits(usdcBalance as bigint, 6);
   }, [usdcBalance]);
 
+  const handleQuickAddExpense = () => {
+    setActiveTab("expense");
+  };
+
   return (
-    <>
+    <div className="app-container">
       <Header />
-      <main className="main flex-col-container flex-grow">
-        <div className="main-inner">
-          <div className="card card--user-balance">
-            <UserBalance balance={formattedUsdcBalance} />
+      <main className="main-content">
+        {/* Home Tab */}
+        {activeTab === "home" && (
+          <div className="tab-content">
+            <div className="card card--user-balance">
+              <UserBalance balance={formattedUsdcBalance} />
+            </div>
+            
+            <div className="section-header">
+              <h3>Recent Activity</h3>
+            </div>
+            
+            <div className="empty-state">
+              <span className="empty-icon">📊</span>
+              <p>No expenses yet</p>
+              <p className="empty-subtitle">Tap the ➕ button to create your first expense</p>
+            </div>
           </div>
-          <div className="card card--add-expense">
+        )}
+        
+        {/* Expense Tab */}
+        {activeTab === "expense" && (
+          <div className="tab-content">
             <AddExpense />
           </div>
-          <div className="card card--pending-approvals">
-            <PendingApprovals />
+        )}
+        
+        {/* Friends Tab */}
+        {activeTab === "friends" && (
+          <div className="tab-content">
+            <div className="card card--pending-approvals">
+              <PendingApprovals />
+            </div>
+            
+            <div className="card card--add-friend">
+              <AddFriend />
+            </div>
           </div>
-          <div className="card card--add-friend">
-            <AddFriend />
+        )}
+        
+        {/* Profile Tab */}
+        {activeTab === "profile" && (
+          <div className="tab-content">
+            <div className="card">
+              <h2 className="card-title">⚙️ Settings</h2>
+              <p style={{ color: "var(--cdp-example-text-secondary-color)", fontSize: "0.95rem" }}>
+                Account settings and preferences
+              </p>
+              
+              <div className="settings-list">
+                <div className="setting-item">
+                  <span>💰 Default Currency</span>
+                  <span className="setting-value">USDC</span>
+                </div>
+                <div className="setting-item">
+                  <span>🔔 Notifications</span>
+                  <span className="setting-value">Enabled</span>
+                </div>
+                <div className="setting-item">
+                  <span>🌐 Network</span>
+                  <span className="setting-value">Base Sepolia</span>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </main>
-    </>
+      
+      {/* Floating Action Button - Quick Add Expense */}
+      {activeTab === "home" && (
+        <button 
+          className="fab" 
+          onClick={handleQuickAddExpense}
+          aria-label="Add expense"
+        >
+          ➕
+        </button>
+      )}
+      
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+    </div>
   );
 }
 
