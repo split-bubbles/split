@@ -3,49 +3,49 @@ import { parseReceipt, splitExpense } from '../../services/aiService';
 import type { ParsedReceipt, SplitResult } from '../../services/aiService';
 
 interface AiPanelProps {
-  total: number;
   mode: 'equal' | 'custom';
   participants: { address: string; amount: number }[];
   selfAddress: string;
   onApplySplit: (allocations: { address: string; amount: number }[], selfAmount?: number) => void;
 }
 
-export const AiPanel: React.FC<AiPanelProps> = ({ total, mode, participants, selfAddress, onApplySplit }) => {
-  const [imageData, setImageData] = useState<string | null>(null);
+export const AiPanel: React.FC<AiPanelProps> = ({ mode, participants, selfAddress, onApplySplit }) => {
+  const [imageData, setImageData] = useState<string | null>(null); // base64
+  const [imageUrl, setImageUrl] = useState<string>('');
   const [instructions, setInstructions] = useState('');
   const [parsed, setParsed] = useState<ParsedReceipt | null>(null);
   const [splitResult, setSplitResult] = useState<SplitResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [priorPlan, setPriorPlan] = useState<any>(null);
 
-  async function handleParse() {
-    if (!imageData) return;
+  async function handleUnifiedSplit() {
+    if (participants.length === 0) return; // nothing to split
     setLoading(true); setError(null); setSplitResult(null);
-    try {
-      const receipt = await parseReceipt(imageData);
-      setParsed(receipt);
-      console.log('Parsed receipt', receipt);
-    } catch (e: any) {
-      // Silent failure: log minimal and show soft message, keep UI usable
-      console.warn('AI parse failed', e);
-      setError('Unable to parse. Enter details manually.');
-    } finally { setLoading(false); }
-  }
-
-  async function handleSplit() {
-    if (!parsed) return;
-    setLoading(true); setError(null);
+    let effectiveParsed: ParsedReceipt | null = parsed;
+    // If we have an image and haven't parsed yet, attempt parse first
+    if (!effectiveParsed && (imageData || imageUrl)) {
+      try {
+        effectiveParsed = await parseReceipt(imageData ? { base64Image: imageData } : { imageUrl });
+        setParsed(effectiveParsed);
+      } catch (e: any) {
+        console.warn('AI parse failed, proceeding without items', e);
+        effectiveParsed = { items: [] };
+      }
+    }
     try {
       const res = await splitExpense({
-        parsed,
+        parsed: effectiveParsed || { items: [] },
         instructions,
         participants: participants.map(p => ({ address: p.address, amount: mode === 'custom' ? p.amount : undefined })),
-        selfAddress
+        selfAddress,
+        priorPlan
       });
       setSplitResult(res);
       onApplySplit(res.allocations, res.selfAmount);
+      setPriorPlan(res.rawPlan);
     } catch (e: any) {
-      console.warn('AI split failed', e);
+      console.warn('Unified AI split failed', e);
       setError('AI split unavailable. Adjust amounts manually.');
     } finally { setLoading(false); }
   }
@@ -58,6 +58,8 @@ export const AiPanel: React.FC<AiPanelProps> = ({ total, mode, participants, sel
     reader.readAsDataURL(file);
   }
 
+  const hasImage = !!imageData || !!imageUrl;
+
   return (
     <div style={{
       marginTop: '20px',
@@ -67,10 +69,62 @@ export const AiPanel: React.FC<AiPanelProps> = ({ total, mode, participants, sel
       borderRadius: '12px'
     }}>
       <h3 style={{ margin: 0, marginBottom: '12px', fontSize: '14px', letterSpacing: '0.5px', fontWeight: 600, color: '#e2e8f0' }}>AI Receipt Assist</h3>
-      <input type="file" accept="image/*" onChange={onFileChange} style={{ marginBottom: '10px' }} />
-      {imageData && (
-        <div style={{ marginBottom: '10px', fontSize: '12px', color: '#94a3b8' }}>Image loaded ({(imageData.length/1024).toFixed(1)} KB)</div>
-      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ flex: 1, position: 'relative' }}>
+            <label htmlFor="ai-upload" style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              padding: '14px 10px',
+              border: '2px dashed #475569',
+              borderRadius: '10px',
+              background: hasImage ? 'rgba(15,23,42,0.6)' : 'rgba(30,41,59,0.4)',
+              cursor: 'pointer'
+            }}>
+              {hasImage ? (
+                <span style={{ fontSize: '11px', color: '#94a3b8' }}>Change Image</span>
+              ) : (
+                <>
+                  <span style={{ fontSize: '26px' }}>🧸📷</span>
+                  <span style={{ fontSize: '11px', color: '#94a3b8' }}>Browse receipt</span>
+                </>
+              )}
+              <input id="ai-upload" type="file" accept="image/*" onChange={onFileChange} style={{ display: 'none' }} />
+            </label>
+          </div>
+          <div style={{ flex: 1 }}>
+            <input
+              type="text"
+              placeholder="Or paste image URL"
+              value={imageUrl}
+              onChange={e => setImageUrl(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                background: '#0f172a',
+                border: '1px solid #475569',
+                borderRadius: '8px',
+                color: '#f1f5f9',
+                fontSize: '12px'
+              }}
+            />
+          </div>
+        </div>
+        {hasImage && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {imageData && <img src={imageData} alt="preview" style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #334155' }} />}
+            {!imageData && imageUrl && <img src={imageUrl} alt="preview" style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #334155' }} />}
+            <span style={{ fontSize: '11px', color: '#94a3b8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{imageUrl || 'Image loaded (' + (imageData ? (imageData.length/1024).toFixed(1)+' KB' : '') + ')'}</span>
+            <button
+              onClick={() => { setImageData(null); setImageUrl(''); setParsed(null); }}
+              style={{ background: '#1e293b', border: '1px solid #334155', color: '#f87171', fontSize: '11px', padding: '6px 8px', borderRadius: '6px', cursor: 'pointer' }}
+            >✕ Remove</button>
+          </div>
+        )}
+      </div>
       <textarea
         placeholder="Add instructions (e.g. exclude tax, split appetizers)..."
         value={instructions}
@@ -88,40 +142,36 @@ export const AiPanel: React.FC<AiPanelProps> = ({ total, mode, participants, sel
           marginBottom: '10px'
         }}
       />
-      <div style={{ display: 'flex', gap: '10px' }}>
+      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
         <button
-          onClick={handleParse}
-          disabled={!imageData || loading}
+          onClick={handleUnifiedSplit}
+          disabled={loading || participants.length === 0}
           style={{
             flex: 1,
-            padding: '8px 12px',
-            background: !imageData ? '#1e293b' : 'linear-gradient(135deg,#1e3a8a,#2563eb)',
-            opacity: loading ? 0.7 : 1,
+            padding: '10px 14px',
+            background: 'linear-gradient(90deg,#16a34a,#0d9488)',
+            boxShadow: '0 0 0 1px #0d9488, 0 4px 12px -2px rgba(13,148,136,0.4)',
+            opacity: loading ? 0.75 : 1,
             color: '#f1f5f9',
-            border: '1px solid #334155',
-            borderRadius: '8px',
-            cursor: !imageData ? 'not-allowed' : 'pointer',
+            fontWeight: 600,
+            border: 'none',
+            borderRadius: '10px',
+            cursor: loading || participants.length === 0 ? 'not-allowed' : 'pointer',
             fontSize: '13px',
             letterSpacing: '0.5px'
           }}
-        >Parse Receipt</button>
-        <button
-          onClick={handleSplit}
-          disabled={!parsed || loading}
-          style={{
-            flex: 1,
-            padding: '8px 12px',
-            background: !parsed ? '#1e293b' : 'linear-gradient(135deg,#0d9488,#14b8a6)',
-            opacity: loading ? 0.7 : 1,
-            color: '#f1f5f9',
-            border: '1px solid #334155',
-            borderRadius: '8px',
-            cursor: !parsed ? 'not-allowed' : 'pointer',
-            fontSize: '13px',
-            letterSpacing: '0.5px'
-          }}
-        >AI Split</button>
+        >{loading ? 'Working...' : priorPlan ? '♻️ Refine Split' : '✨ AI Split'}</button>
+        {loading && (
+          <div style={{ width: 24, height: 24, position: 'relative' }}>
+            <div style={{
+              width: '100%', height: '100%', borderRadius: '50%',
+              border: '3px solid #0d9488', borderTopColor: 'transparent',
+              animation: 'spin 0.8s linear infinite'
+            }} />
+          </div>
+        )}
       </div>
+      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
       {error && <div style={{ marginTop: '10px', color: '#f87171', fontSize: '12px' }}>{error}</div>}
       {parsed && (
         <div style={{ marginTop: '14px' }}>
@@ -153,6 +203,17 @@ export const AiPanel: React.FC<AiPanelProps> = ({ total, mode, participants, sel
               </div>
             )}
           </div>
+          {(splitResult.openQuestions && splitResult.openQuestions.length > 0) && (
+            <div style={{ marginTop: '10px', background: 'rgba(15,23,42,0.6)', border: '1px solid #334155', borderRadius: '8px', padding: '8px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', marginBottom: '6px' }}>Open Questions</div>
+              <ul style={{ margin: 0, paddingLeft: '16px', color: '#cbd5e1', fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {splitResult.openQuestions.map((q, i) => <li key={i}>{q}</li>)}
+              </ul>
+            </div>
+          )}
+          {splitResult.summary && (
+            <div style={{ marginTop: '10px', fontSize: '11px', color: '#94a3b8' }}>Summary: {splitResult.summary}</div>
+          )}
         </div>
       )}
     </div>
