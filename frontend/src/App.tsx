@@ -3,6 +3,8 @@ import { useIsInitialized, useIsSignedIn } from "@coinbase/cdp-hooks";
 import Loading from "./Loading";
 import SignedInScreen from "./SignedInScreen";
 import SignInScreen from "./SignInScreen";
+import WalletConnector from "./WalletConnector";
+import BaseNameCreator from "./BaseNameCreator";
 
 /**
  * This component how to use the useIsIntialized, useEvmAddress, and useIsSignedIn hooks.
@@ -17,6 +19,8 @@ function App() {
       {!isInitialized && <Loading />}
       {isInitialized && (
         <>
+          {isSignedIn && <WalletConnector />}
+          {isSignedIn && <BaseNameCreator />}
           {!isSignedIn && <SignInScreen />}
           {isSignedIn && <SignedInScreen />}
         </>

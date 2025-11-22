@@ -16,10 +16,14 @@
     "@coinbase/cdp-core": "latest",
     "@coinbase/cdp-hooks": "latest",
     "@coinbase/cdp-react": "latest",
+    "@coinbase/cdp-wagmi": "^0.0.67",
+    "@coinbase/onchainkit": "^1.1.2",
+    "@tanstack/react-query": "^5.90.10",
+    "buffer": "^6.0.3",
     "react": "~19.1.0",
     "react-dom": "~19.1.0",
-    "viem": "^2.33.0",
-    "buffer": "^6.0.3"
+    "viem": "^2.39.3",
+    "wagmi": "^2.19.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
