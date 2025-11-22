@@ -1,79 +1,52 @@
-import { useName } from "@coinbase/onchainkit/identity";
 import { useEvmAddress } from "@coinbase/cdp-hooks";
 import { useCurrentUser, useSendUserOperation } from "@coinbase/cdp-hooks";
-import { baseSepolia } from "viem/chains";
+import { baseSepolia, sepolia } from "viem/chains";
 import { useState, useEffect } from "react";
 import { Button } from "@coinbase/cdp-react/components/ui/Button";
-import { encodeFunctionData, namehash, createPublicClient, http, decodeErrorResult } from "viem";
+import { encodeFunctionData, namehash, createPublicClient, http, decodeErrorResult, parseAbi } from "viem";
 import { normalize } from "viem/ens";
+import { useEnsNameOptimistic } from "../hooks/useEnsNameOptimistic";
 
-// Base Sepolia Basenames Controller Contract Address
-const BASE_SEPOLIA_BASENAMES_CONTROLLER_CONTRACT = "0x49ae3cc2e3aa768b1e5654f5d3c6002144a59581" as const;
+// ENS Controller Contract Address for .split.eth
+const ENS_CONTROLLER_CONTRACT = "0xF7f85BF078269d040121bA17758bd0b483CAc440" as const;
 
-// Basename format for Base Sepolia
-const BASE_SEPOLIA_NAME_SUFFIX = ".basetest.eth";
+// ENS name format
+const ENS_NAME_SUFFIX = ".split.eth";
 
 // Minimum registration duration (1 year in seconds)
 const MIN_DURATION = 365 * 24 * 60 * 60;
 
-// Bypass key for temporary access after basename creation
-const BYPASS_KEY = "cdp-split-basename-bypass";
+// Bypass key for temporary access after ENS name creation
+const BYPASS_KEY = "cdp-split-ens-name-bypass";
 
-const basenamesABI = [
-  {
-    inputs: [
-      {
-        name: "request",
-        type: "tuple",
-        components: [
-          { name: "name", type: "string" },
-          { name: "owner", type: "address" },
-          { name: "duration", type: "uint256" },
-          { name: "resolver", type: "address" },
-          { name: "data", type: "bytes[]" },
-          { name: "reverseRecord", type: "bool" }
-        ]
-      }
-    ],
-    name: "register",
-    outputs: [],
-    stateMutability: "payable",
-    type: "function",
-  },
-  {
-    inputs: [
-      { internalType: "string", name: "id", type: "string" },
-      { internalType: "uint256", name: "duration", type: "uint256" },
-    ],
-    name: "rentPrice",
-    outputs: [
-      { internalType: "uint256", name: "base", type: "uint256" },
-      { internalType: "uint256", name: "premium", type: "uint256" },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-    {
-    inputs: [{ internalType: "string", name: "id", type: "string" }],
-    name: "available",
-    outputs: [{ internalType: "bool", name: "", type: "bool" }],
-    stateMutability: "view",
-    type: "function",
-  },
-];
+const ensControllerABI = parseAbi([
+  'function register(string label, address owner) external',
+  'function available(string label) external view returns (bool)',
+])
+// const resolverABI = [
+//   {
+//     inputs: [{ internalType: "address", name: "addr", type: "address" }],
+//     name: "name",
+//     outputs: [{ internalType: "string", name: "", type: "string" }],
+//     stateMutability: "view",
+//     type: "function",
+//   },
+// ] as const;
 
 
 /**
- * Component that allows users to create their own basename during the login flow
+ * Component that allows users to create their own ENS .split.eth name during the login flow
  */
 function BaseNameSetup() {
   const { evmAddress: address } = useEvmAddress();
   const { currentUser } = useCurrentUser();
   const { sendUserOperation, data, error: sendError, status } = useSendUserOperation();
 
-  const { data: baseName, isLoading: isLoadingName } = useName({
-    address: address || undefined,
-    chain: baseSepolia,
+  // Use ENS optimistic resolution
+  const { data: ensName, isLoading: isLoadingEnsName } = useEnsNameOptimistic({
+    address: address as `0x${string}` | undefined,
+    l1ChainId: sepolia.id,
+    l2ChainId: baseSepolia.id,
   });
 
   const [inputName, setInputName] = useState("");
@@ -85,24 +58,36 @@ function BaseNameSetup() {
   const isPending = status === "pending";
   const isSuccess = status === "success" && data;
 
-  // Validate basename format
-  const validateBasename = (name: string): string | null => {
+  // Clear bypass if no ENS name found (after loading completes)
+  useEffect(() => {
+    if (!isLoadingEnsName && !ensName && address) {
+      try {
+        localStorage.removeItem(BYPASS_KEY);
+        console.log("BaseNameSetup: No ENS name found, cleared bypass");
+      } catch (e) {
+        console.error("Failed to clear bypass:", e);
+      }
+    }
+  }, [isLoadingEnsName, ensName, address]);
+
+  // Validate ENS name format
+  const validateEnsName = (name: string): string | null => {
     if (!name) {
-      return "Basename is required";
+      return "ENS name is required";
     }
 
-    // Remove .basetest.eth if present for validation
-    const nameWithoutSuffix = name.replace(/\.basetest\.eth$/i, "").trim();
+    // Remove .split.eth if present for validation
+    const nameWithoutSuffix = name.replace(/\.split\.eth$/i, "").trim();
 
     if (nameWithoutSuffix.length < 3) {
-      return "Basename must be at least 3 characters";
+      return "ENS name must be at least 3 characters";
     }
     if (nameWithoutSuffix.length > 50) {
-      return "Basename must be less than 50 characters";
+      return "ENS name must be less than 50 characters";
     }
     // Allow alphanumeric, hyphens, and underscores
     if (!/^[a-z0-9-_]+$/i.test(nameWithoutSuffix)) {
-      return "Basename can only contain letters, numbers, hyphens, and underscores";
+      return "ENS name can only contain letters, numbers, hyphens, and underscores";
     }
     return null;
   };
@@ -119,23 +104,30 @@ function BaseNameSetup() {
       return;
     }
 
+    // Check if user already has an ENS name
+    if (ensName) {
+      setError(`You already have an ENS name registered: ${ensName}. Please refresh the page.`);
+      setIsChecking(false);
+      return;
+    }
+
     if (!smartAccount) {
       setError("Smart Account not found");
       setIsChecking(false);
       return;
     }
 
-    const validationError = validateBasename(inputName);
+    const validationError = validateEnsName(inputName);
     if (validationError) {
       setError(validationError);
       setIsChecking(false);
       return;
     }
 
-    // Format the name (add .basetest.eth if not present)
+    // Format the name (add .split.eth if not present)
     let formattedName = inputName.trim();
-    if (!formattedName.toLowerCase().endsWith(BASE_SEPOLIA_NAME_SUFFIX)) {
-      formattedName = `${formattedName}${BASE_SEPOLIA_NAME_SUFFIX}`;
+    if (!formattedName.toLowerCase().endsWith(ENS_NAME_SUFFIX)) {
+      formattedName = `${formattedName}${ENS_NAME_SUFFIX}`;
     }
 
     try {
@@ -150,7 +142,7 @@ function BaseNameSetup() {
       // Convert bytes32 node to uint256 (BigInt)
       const nameId = BigInt(node);
 
-      console.log("Registering basename:", {
+      console.log("Registering ENS name:", {
         formattedName,
         normalizedName,
         node: node.toString(),
@@ -159,8 +151,8 @@ function BaseNameSetup() {
 
     // Try to check availability (optional - may not be available on this contract)
     const available = await publicClient.readContract({
-        address: BASE_SEPOLIA_BASENAMES_CONTROLLER_CONTRACT,
-        abi: basenamesABI,
+        address: ENS_CONTROLLER_CONTRACT,
+        abi: ensControllerABI,
         functionName: "available",
         args: [inputName],
     });
@@ -172,17 +164,16 @@ function BaseNameSetup() {
     }
 
       // Get the registration fee
-      const rentPriceResult = await publicClient.readContract({
-        address: BASE_SEPOLIA_BASENAMES_CONTROLLER_CONTRACT,
-        abi: basenamesABI,
-        functionName: "rentPrice",
-        args: [inputName, MIN_DURATION],
-      });
+      // const {base: basePrice, premium: premiumPrice} = await publicClient.readContract({
+      //   address: BASE_SEPOLIA_BASENAMES_CONTROLLER_CONTRACT,
+      //   abi: basenamesABI,
+      //   functionName: "rentPrice",
+      //   args: [inputName, BigInt(MIN_DURATION)],
+      // });
 
-      const [basePrice, premiumPrice] = rentPriceResult as [bigint, bigint];
-      const totalFee = (basePrice + premiumPrice);
+      // const totalFee = (basePrice + premiumPrice);
 
-      console.log(totalFee);
+      // console.log(totalFee);
 
       // Extract smart account address
       let smartAccountAddress: string;
@@ -205,55 +196,42 @@ function BaseNameSetup() {
 
       console.log(balance);
 
-      if (balance < totalFee) {
-        setError(
-          `Insufficient balance. Required: ${(Number(totalFee) / 1e18).toFixed(6)} ETH, Have: ${(Number(balance) / 1e18).toFixed(6)} ETH`
-        );
-        setIsChecking(false);
-        return;
-      }
+      // if (balance < totalFee) {
+      //   setError(
+      //     `Insufficient balance. Required: ${(Number(totalFee) / 1e18).toFixed(6)} ETH, Have: ${(Number(balance) / 1e18).toFixed(6)} ETH`
+      //   );
+      //   setIsChecking(false);
+      //   return;
+      // }
 
       const registerData = encodeFunctionData({
-  abi: basenamesABI,
+  abi: ensControllerABI,
   functionName: "register",
   args: [
-    {
-      name: inputName,
-      owner: smartAccountAddress,
-      duration: MIN_DURATION,
-      resolver: "0x6533C94869D28fAA8dF77cc63f9e2b2D6Cf77eBA", // or your preferred resolver
-      data: [],        // no extra records
-      reverseRecord: true, // recommended
-    }
+    inputName,
+    smartAccountAddress as `0x${string}`
   ]
 });
 console.log("Register data:", registerData);
 console.log("From:", smartAccountAddress);
       console.log("Sending registration transaction:", {
-        contract: BASE_SEPOLIA_BASENAMES_CONTROLLER_CONTRACT,
+        contract: ENS_CONTROLLER_CONTRACT,
         name: inputName, 
         owner: smartAccountAddress,
         duration: MIN_DURATION.toString(),
-        fee: totalFee.toString(),
+        // fee: totalFee.toString(),
       });
 // Before sendUserOperation, simulate the call to get detailed error
 try {
   const simulation = await publicClient.simulateContract({
-    address: BASE_SEPOLIA_BASENAMES_CONTROLLER_CONTRACT,
-    abi: basenamesABI,
+    address: ENS_CONTROLLER_CONTRACT,
+    abi: ensControllerABI,
     functionName: "register",
     args: [
-      {
-        name: inputName,
-        owner: smartAccountAddress,
-        duration: MIN_DURATION,
-        resolver: "0x6533C94869D28fAA8dF77cc63f9e2b2D6Cf77eBA",
-        data: [],
-        reverseRecord: true,
-      }
+    inputName,
+    smartAccountAddress as `0x${string}`
     ],
     account: smartAccountAddress as `0x${string}`,
-    value: totalFee,
   });
   console.log("Simulation successful:", simulation);
 } catch (simError: any) {
@@ -266,7 +244,7 @@ try {
     // Try to decode as a string revert reason
     try {
       const decoded = decodeErrorResult({
-        abi: basenamesABI,
+        abi: ensControllerABI,
         data: simError.cause.data,
       });
       console.error("Decoded revert reason:", decoded);
@@ -301,10 +279,35 @@ try {
         network: "base-sepolia",
         calls: [
           {
-            to: BASE_SEPOLIA_BASENAMES_CONTROLLER_CONTRACT,
-            value: totalFee,
+            to: ENS_CONTROLLER_CONTRACT,
             data: registerData,
           },
+          // {
+          //   to: BASE_SEPOLIA_RESOLVER,
+          //   value: 0n,
+          //   data: encodeFunctionData({
+          //     abi: resolverAbi,
+          //     functionName: "setAddr",
+          //     args: [node, toCoinType(baseSepolia.id), smartAccountAddress as `0x${string}`],
+          //   }),
+          // },
+          // {
+          //   to: BASE_SEPOLIA_RESOLVER,
+          //   value: 0n,
+          //   data: encodeFunctionData({
+          //     abi: resolverAbi,
+          //     functionName: "setAddr",
+          //     args: [node, toCoinType(base.id), smartAccountAddress as `0x${string}`],
+          //   }),
+          // },
+          {
+            to: '0x00000BeEF055f7934784D6d81b6BC86665630dbA',
+            data: encodeFunctionData({
+              abi: parseAbi(['function setName(string memory name) external returns (bytes32)']),
+              functionName: "setName",
+              args: [normalizedName],
+            }),
+          }
         ],
       });
 
@@ -314,7 +317,7 @@ try {
       setIsChecking(false);
       
       // Try to extract a more helpful error message
-      let errorMessage = "Failed to register basename";
+      let errorMessage = "Failed to register ENS name";
       
       if (err instanceof Error) {
         errorMessage = err.message;
@@ -330,46 +333,49 @@ try {
       }
       
       setError(errorMessage);
-      console.error("Basename registration error:", err);
+      console.error("ENS name registration error:", err);
     }
   };
 
   // Set bypass flag immediately when transaction succeeds to allow redirect
   useEffect(() => {
     if (isSuccess) {
-      console.log("Basename creation successful, setting bypass flag");
+      console.log("ENS name creation successful, setting bypass flag");
       // Set a temporary flag to allow redirect immediately
       // This will be cleared on next sign out
       try {
         localStorage.setItem(BYPASS_KEY, "true");
         console.log("Bypass flag set in localStorage:", localStorage.getItem(BYPASS_KEY));
         // Dispatch a custom event to notify BasenameGate immediately
-        const event = new CustomEvent("basename-created", { detail: { timestamp: Date.now() } });
+        const event = new CustomEvent("ens-name-created", { detail: { timestamp: Date.now() } });
         window.dispatchEvent(event);
-        console.log("Basename-created event dispatched");
+        console.log("ENS name created event dispatched");
       } catch (e) {
         console.error("Failed to set bypass flag:", e);
       }
     }
   }, [isSuccess]);
 
-  // Show loading while checking for basename
-  if (isLoadingName) {
+  // Show loading while checking for ENS name
+  if (isLoadingEnsName) {
     return (
       <div className="card card--basename-setup">
-        <h2 className="card-title">Checking basename...</h2>
-        <p>Please wait while we check if you have a basename.</p>
+        <h2 className="card-title">Checking ENS name...</h2>
+        <p>Please wait while we check if you have a .split.eth name.</p>
       </div>
     );
   }
 
-  // If user already has a basename, this component shouldn't be shown
+  // If user already has an ENS name, this component shouldn't be shown
   // (BasenameGate handles this, but just in case)
-  if (baseName) {
+  if (ensName) {
     return (
       <div className="card card--basename-setup">
-        <h2 className="card-title">✅ You already have a basename!</h2>
-        <p>Your basename: <strong>{baseName}</strong></p>
+        <h2 className="card-title">✅ You already have an ENS name!</h2>
+        <p>Your ENS name: <strong>{ensName}</strong></p>
+        <p style={{ fontSize: "0.875rem", color: "var(--cdp-example-text-secondary-color)", marginTop: "0.5rem" }}>
+          Found via ENS resolution.
+        </p>
       </div>
     );
   }
@@ -379,13 +385,13 @@ try {
   if (isSuccess) {
     return (
       <div className="card card--basename-setup">
-        <h2 className="card-title">✅ Basename Created!</h2>
-        <p>Your basename has been successfully created.</p>
+        <h2 className="card-title">✅ ENS Name Created!</h2>
+        <p>Your .split.eth name has been successfully created.</p>
         <p className="success-message">
           <strong>
-            {inputName.toLowerCase().endsWith(BASE_SEPOLIA_NAME_SUFFIX)
+            {inputName.toLowerCase().endsWith(ENS_NAME_SUFFIX)
               ? inputName
-              : `${inputName.trim()}${BASE_SEPOLIA_NAME_SUFFIX}`}
+              : `${inputName.trim()}${ENS_NAME_SUFFIX}`}
           </strong>
         </p>
         <p style={{ marginTop: "1rem", fontSize: "0.875rem", color: "#666" }}>
@@ -414,8 +420,8 @@ try {
 
   return (
     <div className="card card--basename-setup">
-      <h2 className="card-title">Create Your Basename</h2>
-      <p>Choose a unique name for your wallet address on Base Sepolia.</p>
+      <h2 className="card-title">Create Your ENS Name</h2>
+      <p>Choose a unique .split.eth name for your wallet address.</p>
       
       {smartAccountAddress && (
         <div style={{
@@ -459,17 +465,17 @@ try {
       )}
 
       <p className="smart-account-info">
-        ℹ️ <strong>Note:</strong> This will register your basename on Base Sepolia testnet. The registration requires a
+        ℹ️ <strong>Note:</strong> This will register your .split.eth name on Base Sepolia testnet. The registration requires a
         small fee (approximately 0.0001 ETH on testnet).
       </p>
 
       <form onSubmit={handleSubmit} className="flex-col-container" style={{ gap: "1rem" }}>
         <div className="flex-col-container" style={{ gap: "0.5rem" }}>
-          <label htmlFor="basename-input" style={{ fontWeight: "500" }}>
-            Basename
+          <label htmlFor="ens-name-input" style={{ fontWeight: "500" }}>
+            ENS Name (without .split.eth)
           </label>
           <input
-            id="basename-input"
+            id="ens-name-input"
             type="text"
             value={inputName}
             onChange={(e) => {
@@ -485,9 +491,9 @@ try {
               fontSize: "1rem",
             }}
           />
-          {inputName && !inputName.toLowerCase().endsWith(BASE_SEPOLIA_NAME_SUFFIX) && (
+          {inputName && !inputName.toLowerCase().endsWith(ENS_NAME_SUFFIX) && (
             <p style={{ fontSize: "0.875rem", color: "#666" }}>
-              Will be registered as: <strong>{inputName.trim()}{BASE_SEPOLIA_NAME_SUFFIX}</strong>
+              Will be registered as: <strong>{inputName.trim()}{ENS_NAME_SUFFIX}</strong>
             </p>
           )}
           {error && (
@@ -515,12 +521,12 @@ try {
           disabled={isPending || isChecking || !inputName.trim() || !smartAccount}
           className="tx-button"
         >
-          {isChecking ? "Checking..." : isPending ? "Creating..." : "Create Basename"}
+          {isChecking ? "Checking..." : isPending ? "Creating..." : "Create ENS Name"}
         </Button>
 
         {(isPending || isChecking) && (
           <p style={{ fontSize: "0.875rem", color: "#666", textAlign: "center" }}>
-            {isChecking ? "Checking name availability..." : "Processing your basename registration..."}
+            {isChecking ? "Checking name availability..." : "Processing your .split.eth name registration..."}
           </p>
         )}
       </form>

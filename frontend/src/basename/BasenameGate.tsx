@@ -1,22 +1,23 @@
-import { useName } from "@coinbase/onchainkit/identity";
 import { useEvmAddress } from "@coinbase/cdp-hooks";
-import { baseSepolia } from "viem/chains";
 import { useState, useEffect } from "react";
+import { baseSepolia, sepolia } from "viem/chains";
 import BaseNameSetup from "./BaseNameSetup";
 import SignedInScreen from "../SignedInScreen";
 import Loading from "../common/Loading";
+import { useEnsNameOptimistic } from "../hooks/useEnsNameOptimistic";
 
-const BYPASS_KEY = "cdp-split-basename-bypass";
+const BYPASS_KEY = "cdp-split-ens-name-bypass";
 
 /**
- * Component that gates access to SignedInScreen until user has a basename
- * Shows BaseNameSetup if user doesn't have a basename, otherwise shows SignedInScreen
+ * Component that gates access to SignedInScreen until user has an ENS .split.eth name
+ * Shows BaseNameSetup if user doesn't have an ENS name, otherwise shows SignedInScreen
  */
 function BasenameGate() {
   const { evmAddress: address } = useEvmAddress();
-  const { data: baseName, isLoading: isLoadingName } = useName({
-    address: address || undefined,
-    chain: baseSepolia,
+  const { data: baseName, isLoading: isLoadingName } = useEnsNameOptimistic({
+    address: address as `0x${string}` | undefined,
+    l1ChainId: sepolia.id,
+    l2ChainId: baseSepolia.id,
   });
   const [isBypassed, setIsBypassed] = useState(false);
   const [isCheckingBypass, setIsCheckingBypass] = useState(true);
@@ -32,15 +33,27 @@ function BasenameGate() {
     }
   };
 
+  // Clear bypass if no ENS name found (after loading completes)
+  useEffect(() => {
+    if (!isLoadingName && !baseName && address) {
+      try {
+        localStorage.removeItem(BYPASS_KEY);
+        setIsBypassed(false);
+      } catch (e) {
+        console.error("Failed to clear bypass:", e);
+      }
+    }
+  }, [isLoadingName, baseName, address]);
+
   useEffect(() => {
     // Initial check
     const initialBypass = checkBypassFromStorage();
     setIsBypassed(initialBypass);
     setIsCheckingBypass(false);
 
-    // Listen for basename creation event
-    const handleBasenameCreated = () => {
-      console.log("BasenameGate: Received basename-created event");
+    // Listen for ENS name creation event
+    const handleEnsNameCreated = () => {
+      console.log("BasenameGate: Received ens-name-created event");
       const bypassed = checkBypassFromStorage();
       console.log("BasenameGate: After event, bypassed =", bypassed);
       setIsBypassed(bypassed);
@@ -48,7 +61,7 @@ function BasenameGate() {
       forceUpdate(prev => prev + 1);
     };
 
-    window.addEventListener("basename-created", handleBasenameCreated);
+    window.addEventListener("ens-name-created", handleEnsNameCreated);
 
     // Poll for bypass changes as a fallback (always update to trigger re-render)
     const interval = setInterval(() => {
@@ -63,7 +76,7 @@ function BasenameGate() {
     }, 100); // Check every 100ms for very fast response
 
     return () => {
-      window.removeEventListener("basename-created", handleBasenameCreated);
+      window.removeEventListener("ens-name-created", handleEnsNameCreated);
       clearInterval(interval);
     };
   }, [isBypassed]);
@@ -79,28 +92,29 @@ function BasenameGate() {
     });
   }, [address, baseName, isLoadingName, isBypassed, isCheckingBypass]);
 
-  // Note: Polling removed - basename will be detected naturally when available
-
-  if (isCheckingBypass) {
+  if (isCheckingBypass || isLoadingName) {
     return <Loading />;
   }
 
-  // Show loading while checking for basename
-  if (isLoadingName && !isBypassed && address) {
-    return <Loading />;
-  }
-
-  // Check bypass directly from localStorage in render (most reliable)
-  const bypassedFromStorage = checkBypassFromStorage();
-  const shouldShowMainScreen = baseName || isBypassed || bypassedFromStorage;
-
-  // If user has a basename or bypass is enabled, show the main screen
-  if (shouldShowMainScreen) {
-    console.log("BasenameGate: Rendering SignedInScreen because baseName =", baseName, "isBypassed =", isBypassed, "bypassedFromStorage =", bypassedFromStorage);
+  // Only show main screen if there's an actual ENS name found
+  if (baseName) {
+    console.log("BasenameGate: Rendering SignedInScreen because baseName =", baseName);
     return <SignedInScreen />;
   }
+  
+  // Clear bypass if it's set but no ENS name found
+  const bypassedFromStorage = checkBypassFromStorage();
+  if (bypassedFromStorage) {
+    console.log("BasenameGate: Bypass is set but no ENS name found, clearing bypass");
+    try {
+      localStorage.removeItem(BYPASS_KEY);
+      setIsBypassed(false);
+    } catch (e) {
+      console.error("Failed to clear bypass:", e);
+    }
+  }
 
-  // If user doesn't have a basename, show the setup screen
+  // If user doesn't have an ENS name, show the setup screen
   return (
     <div style={{
       position: "fixed",

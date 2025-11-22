@@ -5,7 +5,7 @@ import Loading from "./common/Loading";
 import SignInScreen from "./common/SignInScreen";
 import BasenameGate from "./basename/BasenameGate";
 
-const BYPASS_KEY = "cdp-split-basename-bypass";
+const BYPASS_KEY = "cdp-split-ens-name-bypass";
 
 /**
  * This component how to use the useIsIntialized, useEvmAddress, and useIsSignedIn hooks.
@@ -22,7 +22,7 @@ function App() {
     if (prevSignedInRef.current === true && isSignedIn === false) {
       try {
         localStorage.removeItem(BYPASS_KEY);
-        console.log("Cleared basename bypass on sign out");
+        console.log("Cleared ENS name bypass on sign out");
       } catch (e) {
         console.error("Failed to clear bypass on sign out:", e);
       }

@@ -1,6 +1,6 @@
 import { AuthButton } from "@coinbase/cdp-react/components/AuthButton";
 import { useEvmAddress } from "@coinbase/cdp-hooks";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 
 import { IconCheck, IconCopy, IconUser } from "./Icons";
 import BaseNameResolver from "../basename/BaseNameResolver";
@@ -12,6 +12,8 @@ import BaseNameResolver from "../basename/BaseNameResolver";
 function Header() {
   const { evmAddress } = useEvmAddress();
   const [isCopied, setIsCopied] = useState(false);
+  const [hasBasename, setHasBasename] = useState(false);
+  const nameContainerRef = useRef<HTMLSpanElement>(null);
 
   const formatAddress = useCallback((address: string) => {
     if (!address) return "";
@@ -27,6 +29,17 @@ function Header() {
       console.error(error);
     }
   };
+
+  // Reset hasBasename when address changes
+  useEffect(() => {
+    console.log("Header: Address changed, resetting hasBasename");
+    setHasBasename(false);
+  }, [evmAddress]);
+
+  // Debug logging for hasBasename
+  useEffect(() => {
+    console.log("Header: hasBasename state:", hasBasename);
+  }, [hasBasename]);
 
   useEffect(() => {
     if (!isCopied) return;
@@ -65,9 +78,18 @@ function Header() {
                 </>
               )}
               {isCopied && <IconCheck className="user-icon user-icon--check" />}
-              <span className="wallet-address" style={{ fontSize: "0.875rem" }}>
-                <BaseNameResolver />
-                {evmAddress && <span>{formatAddress(evmAddress)}</span>}
+              <span 
+                ref={nameContainerRef}
+                className="wallet-address" 
+                style={{ fontSize: "0.875rem", display: "flex", alignItems: "center", gap: "0.25rem" }}
+              >
+                <BaseNameResolver onResolved={(resolved) => {
+                  console.log("Header: onResolved callback called with:", resolved);
+                  setHasBasename(resolved);
+                }} />
+                {!hasBasename && evmAddress && (
+                  <span style={{ display: "inline-block" }}>{formatAddress(evmAddress)}</span>
+                )}
               </span>
             </button>
           )}
