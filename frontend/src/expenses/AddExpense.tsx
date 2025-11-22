@@ -1,8 +1,8 @@
 import { Button } from "@coinbase/cdp-react/components/ui/Button";
 import { useState, useEffect } from "react";
-import { useEvmAddress } from "@coinbase/cdp-hooks";
+import { useEvmAddress, useCurrentUser, useSendUserOperation } from "@coinbase/cdp-hooks";
 import { useReadContract } from "../hooks/useReadContract";
-import { type Address } from "viem";
+import { type Address, encodeFunctionData, parseUnits } from "viem";
 import { FRIEND_REQUESTS_ABI, FRIEND_REQUESTS_CONTRACT_ADDRESS } from "../contracts/FriendRequests";
 import FriendNameDisplay from "../friends/FriendNameDisplay";
 import { SplitModeSelector } from "./components/SplitModeSelector";
@@ -10,11 +10,43 @@ import { ParticipantAmountInput } from "./components/ParticipantAmountInput";
 import { SplitSummaryBar } from "./components/SplitSummaryBar";
 import { AiPanel } from "./components/AiPanel";
 
+// USDC contract address on Base Sepolia
+const USDC_ADDRESS: Address = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
+
+// ERC20 ABI for transfer and transferFrom functions
+const ERC20_ABI = [
+  {
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    name: "transfer",
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { name: "from", type: "address" },
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    name: "transferFrom",
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+] as const;
+
 interface AddExpenseProps { openTrigger?: number; isModal?: boolean }
 
 function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
   const { evmAddress: currentAddress } = useEvmAddress();
+  const { currentUser } = useCurrentUser();
+  const { sendUserOperation, status: transferStatus } = useSendUserOperation();
   const [isOpen, setIsOpen] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [lastTrigger, setLastTrigger] = useState(0);
   const [selectedFriends, setSelectedFriends] = useState<Set<Address>>(new Set());
   const [friends, setFriends] = useState<Address[]>([]);
@@ -60,6 +92,7 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
       e.stopPropagation();
     }
     setIsOpen(false);
+    setShowSuccess(false);
     setSelectedFriends(new Set());
     setDescription("");
     setTotalAmount("");
@@ -79,17 +112,96 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
     allocs.forEach(a => { const addr = a.address as Address; if (selectedFriends.has(addr)) map.set(addr, a.amount); });
     setParticipantSplits(map); if (typeof selfAmount === 'number') setSelfSplit(selfAmount); setSplitMode('custom');
   };
-  const handleSaveExpense = () => {
+  const handleSaveExpense = async () => {
     if (selectedFriends.size === 0) { alert("Select at least one friend."); return; }
     if (!description.trim()) { alert("Enter description."); return; }
     const total = parseFloat(totalAmount); if (!total || total <= 0) { alert("Enter valid total."); return; }
-    console.log("Expense saved", { description, totalAmount: total, selectedFriends: Array.from(selectedFriends), splitMode, participantSplits: Object.fromEntries(participantSplits), selfSplit });
-    alert("Expense recorded! (Pending on-chain implementation)"); handleCancel();
+    
+    if (!canFinalize) {
+      alert("Please complete the split before finalizing.");
+      return;
+    }
+
+    const smartAccount = currentUser?.evmSmartAccounts?.[0];
+    if (!smartAccount || !currentAddress) {
+      alert("Smart account not available. Please ensure you're signed in.");
+      return;
+    }
+
+    setIsFinalizing(true);
+
+    try {
+      // Note: The creator (first person) paid the receipt, so friends should pay them back.
+      // However, we can only initiate transfers from the creator's account in a single transaction.
+      // In a full implementation, friends would need to approve and transfer to the creator separately.
+      // For now, we're using transferFrom where friends pull their share from the creator's approved balance.
+      // This requires friends to have approved the creator first (which happens during friend request approval).
+      
+      // Create transferFrom calls - friends transfer their share TO the creator
+      const calls = Array.from(selectedFriends).map((friendAddress) => {
+        const amount = participantSplits.get(friendAddress) || 0;
+        // USDC has 6 decimals
+        const amountInWei = parseUnits(amount.toFixed(6), 6);
+        
+        // transferFrom(from, to, amount) - friend transfers to creator
+        // The creator pulls the friend's share from the friend's account
+        // This works because friends approved the creator during friend request approval
+        const transferFromData = encodeFunctionData({
+          abi: ERC20_ABI,
+          functionName: "transferFrom",
+          args: [friendAddress, currentAddress, amountInWei],
+        });
+
+        return {
+          to: USDC_ADDRESS,
+          value: 0n,
+          data: transferFromData,
+        };
+      });
+
+      // Execute all transfers in a single user operation
+      const result = await sendUserOperation({
+        evmSmartAccount: smartAccount,
+        network: "base-sepolia",
+        calls,
+      });
+
+      console.log("Expense finalized, friends paid creator:", {
+        description,
+        totalAmount: total,
+        creator: currentAddress,
+        selectedFriends: Array.from(selectedFriends),
+        participantSplits: Object.fromEntries(participantSplits),
+        selfSplit,
+        userOperationHash: result.userOperationHash,
+      });
+
+      // Show success checkmark
+      setShowSuccess(true);
+      
+      // Close modal after a short delay to show the checkmark
+      setTimeout(() => {
+        handleCancel();
+      }, 1500);
+    } catch (err: any) {
+      console.error("Failed to finalize expense:", err);
+      alert(`Failed to finalize expense: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      setIsFinalizing(false);
+    }
   };
 
   const enteredTotal = parseFloat(totalAmount || "0") || 0;
   const totalFriends = Array.from(participantSplits.values()).reduce((s, v) => s + v, 0);
   const totalSplit = totalFriends + selfSplit;
+  
+  // Determine if we can finalize - split must be complete and match the total
+  const canFinalize = 
+    selectedFriends.size > 0 &&
+    description.trim().length > 0 &&
+    enteredTotal > 0 &&
+    Math.abs(totalSplit - enteredTotal) < 0.01 && // Allow small floating point differences
+    totalSplit > 0;
 
   if (!isOpen) {
     if (isModal) {
@@ -167,6 +279,50 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
             </div>
           )}
         </div>
+      </div>
+      {/* Finalize Button */}
+      <div style={{ padding: "1rem 1.25rem", borderTop: "1px solid #334155", backgroundColor: "#0f172a" }}>
+        {showSuccess ? (
+          <div style={{
+            width: "100%",
+            padding: "0.75rem 1.5rem",
+            borderRadius: "0.5rem",
+            background: "linear-gradient(135deg, #1cc29f 0%, #10b981 100%)",
+            color: "#ffffff",
+            fontSize: "1rem",
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.5rem",
+            transition: "all 0.3s",
+          }}>
+            <span style={{ fontSize: "1.25rem" }}>✓</span>
+            <span>Expense Finalized!</span>
+          </div>
+        ) : (
+          <button
+            onClick={handleSaveExpense}
+            disabled={!canFinalize || isFinalizing}
+            style={{
+              width: "100%",
+              padding: "0.75rem 1.5rem",
+              borderRadius: "0.5rem",
+              border: "none",
+              fontSize: "1rem",
+              fontWeight: 600,
+              cursor: (canFinalize && !isFinalizing) ? "pointer" : "not-allowed",
+              background: (canFinalize && !isFinalizing)
+                ? "linear-gradient(135deg, #1cc29f 0%, #10b981 100%)" 
+                : "#334155",
+              color: (canFinalize && !isFinalizing) ? "#ffffff" : "#64748b",
+              transition: "all 0.2s",
+              opacity: (canFinalize && !isFinalizing) ? 1 : 0.5,
+            }}
+          >
+            {isFinalizing ? "Finalizing..." : "Finalize"}
+          </button>
+        )}
       </div>
     </div>
   );

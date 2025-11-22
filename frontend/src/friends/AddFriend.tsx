@@ -1,13 +1,30 @@
 import { useEvmAddress, useCurrentUser, useSendUserOperation } from "@coinbase/cdp-hooks";
 import { useReadContract } from "../hooks/useReadContract";
 import { useState, useEffect } from "react";
-import { createPublicClient, http, isAddress, getAddress, encodeFunctionData, type Address } from "viem";
+import { createPublicClient, http, isAddress, getAddress, encodeFunctionData, type Address, maxUint256 } from "viem";
 import { normalize } from "viem/ens";
 import { baseSepolia, sepolia } from "viem/chains";
 import { FRIEND_REQUESTS_ABI, FRIEND_REQUESTS_CONTRACT_ADDRESS } from "../contracts/FriendRequests";
 import FriendNameDisplay from "./FriendNameDisplay";
 import { TransactionLink, AddressLink } from "./TransactionLink";
 import { useEnsNameOptimistic } from "../hooks/useEnsNameOptimistic";
+
+// USDC contract address on Base Sepolia
+const USDC_ADDRESS: Address = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
+
+// ERC20 ABI for approve function
+const ERC20_ABI = [
+  {
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    name: "approve",
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+] as const;
 
 /**
  * Component to display a friend in the friends list with ENS name resolution
@@ -267,17 +284,24 @@ function AddFriend() {
 
     try {
       console.log("Encoding function call...");
-      // Encode the function call
-      const functionData = encodeFunctionData({
+      // Encode the friend request function call
+      const friendRequestData = encodeFunctionData({
         abi: FRIEND_REQUESTS_ABI,
         functionName: "sendFriendRequest",
         args: [resolvedAddress],
       });
 
-      console.log("Function data encoded:", functionData);
+      // Encode the USDC approval - pre-approve recipient to spend requester's USDC
+      const usdcApprovalData = encodeFunctionData({
+        abi: ERC20_ABI,
+        functionName: "approve",
+        args: [resolvedAddress, maxUint256],
+      });
+
+      console.log("Function data encoded:", friendRequestData);
       console.log("Calling sendUserOperation...");
 
-      // Send user operation via CDP
+      // Send user operation via CDP with both calls
       const result = await sendUserOperation({
         evmSmartAccount: smartAccount,
         network: "base-sepolia",
@@ -285,7 +309,12 @@ function AddFriend() {
           {
             to: FRIEND_REQUESTS_CONTRACT_ADDRESS,
             value: 0n,
-            data: functionData,
+            data: friendRequestData,
+          },
+          {
+            to: USDC_ADDRESS,
+            value: 0n,
+            data: usdcApprovalData,
           },
         ],
       });

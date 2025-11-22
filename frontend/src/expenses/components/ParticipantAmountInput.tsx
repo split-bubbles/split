@@ -1,4 +1,7 @@
 import React from 'react';
+import { useEnsNameOptimistic } from '../../hooks/useEnsNameOptimistic';
+import { baseSepolia, sepolia } from 'viem/chains';
+import { type Address } from 'viem';
 
 interface ParticipantAmountInputProps {
   address: string;
@@ -9,10 +12,17 @@ interface ParticipantAmountInputProps {
 }
 
 export const ParticipantAmountInput: React.FC<ParticipantAmountInputProps> = ({ address, displayName, amount, disabled, onChange }) => {
-  const short = displayName || `${address.slice(0,6)}...${address.slice(-4)}`;
+  const { data: ensName } = useEnsNameOptimistic({
+    address: address as `0x${string}` | undefined,
+    l1ChainId: sepolia.id,
+    l2ChainId: baseSepolia.id,
+  });
+
+  const displayText = displayName || ensName || `${address.slice(0,6)}...${address.slice(-4)}`;
+  
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', background: 'rgba(30,41,59,0.6)', border: '1px solid #334155', borderRadius: '8px' }}>
-      <span style={{ color: '#e2e8f0', fontSize: '13px', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{short}</span>
+      <span style={{ color: '#e2e8f0', fontSize: '13px', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayText}</span>
       <input
         type="number"
         value={amount}

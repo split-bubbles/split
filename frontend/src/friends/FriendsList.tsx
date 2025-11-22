@@ -1,8 +1,8 @@
-import { useEvmAddress } from "@coinbase/cdp-hooks";
+import { useEvmAddress, useCurrentUser, useSendUserOperation } from "@coinbase/cdp-hooks";
 import { useState, useEffect } from "react";
 import { useReadContract } from "../hooks/useReadContract";
 import { baseSepolia, sepolia } from "viem/chains";
-import { type Address } from "viem";
+import { type Address, encodeFunctionData } from "viem";
 import { FRIEND_REQUESTS_ABI, FRIEND_REQUESTS_CONTRACT_ADDRESS } from "../contracts/FriendRequests";
 import { useEnsNameOptimistic } from "../hooks/useEnsNameOptimistic";
 import { TransactionLink, AddressLink } from "./TransactionLink";
@@ -56,8 +56,13 @@ function FriendListItem({
  */
 function FriendsList() {
   const { evmAddress: currentAddress } = useEvmAddress();
+  const { currentUser } = useCurrentUser();
+  const { sendUserOperation, status } = useSendUserOperation();
   const [friends, setFriends] = useState<Address[]>([]);
   const [sentRequestTransactions, setSentRequestTransactions] = useState<Map<string, `0x${string}`>>(new Map());
+  const [isRemovingAll, setIsRemovingAll] = useState(false);
+
+  const smartAccount = currentUser?.evmSmartAccounts?.[0];
 
   // Read friends from contract
   const { data: contractFriends, refetch: refetchFriends } = useReadContract({
@@ -94,6 +99,66 @@ function FriendsList() {
     }
   }, []);
 
+  // Refetch friends after successful removal
+  useEffect(() => {
+    if (status === "success" && isRemovingAll) {
+      setTimeout(() => {
+        refetchFriends();
+        setIsRemovingAll(false);
+      }, 2000);
+    }
+  }, [status, isRemovingAll, refetchFriends]);
+
+  const handleRemoveAllFriends = async () => {
+    if (!currentAddress || !smartAccount || friends.length === 0) {
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to remove all ${friends.length} friend(s)?`)) {
+      return;
+    }
+
+    setIsRemovingAll(true);
+
+    try {
+      // Create removeFriend calls for each friend
+      const calls = friends.map((friendAddress) => {
+        const removeFriendData = encodeFunctionData({
+          abi: FRIEND_REQUESTS_ABI,
+          functionName: "removeFriend",
+          args: [friendAddress],
+        });
+
+        return {
+          to: FRIEND_REQUESTS_CONTRACT_ADDRESS,
+          value: 0n,
+          data: removeFriendData,
+        };
+      });
+
+      // Execute all removals in a single user operation
+      const result = await sendUserOperation({
+        evmSmartAccount: smartAccount,
+        network: "base-sepolia",
+        calls,
+      });
+
+      console.log("All friends removed, user operation hash:", result.userOperationHash);
+      
+      // Refetch friends list after a short delay
+      setTimeout(() => {
+        if (contractFriends) {
+          refetchFriends();
+        }
+      }, 2000);
+    } catch (err: any) {
+      console.error("Failed to remove all friends:", err);
+      alert(`Failed to remove all friends: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      setIsRemovingAll(false);
+    }
+  };
+
   if (friends.length === 0) {
     return (
       <div className="card card--friends-list">
@@ -110,7 +175,25 @@ function FriendsList() {
 
   return (
     <div className="card card--friends-list">
-      <h2 className="card-title">👥 Your Friends ({friends.length})</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+        <h2 className="card-title" style={{ margin: 0 }}>👥 Your Friends ({friends.length})</h2>
+        <button
+          onClick={handleRemoveAllFriends}
+          disabled={isRemovingAll || status === "pending"}
+          style={{
+            padding: "0.5rem 1rem",
+            borderRadius: "0.5rem",
+            border: "1px solid #f44336",
+            background: "transparent",
+            color: "#f44336",
+            fontSize: "0.875rem",
+            cursor: (isRemovingAll || status === "pending") ? "not-allowed" : "pointer",
+            opacity: (isRemovingAll || status === "pending") ? 0.5 : 1,
+          }}
+        >
+          {isRemovingAll || status === "pending" ? "Removing..." : "Remove All"}
+        </button>
+      </div>
       <div className="flex-col-container" style={{ gap: "0.5rem", maxHeight: "280px", overflowY: "auto", alignItems: "center" }}>
         {friends.map((friendAddress) => (
           <FriendListItem 
