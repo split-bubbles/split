@@ -8,6 +8,7 @@ import { initializeApplication } from './startup';
 // Import routes
 import accountRoutes from './routes/accountRoutes';
 import serviceRoutes from './routes/serviceRoutes';
+import receiptRoutes from './routes/receiptRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -32,6 +33,7 @@ const apiPrefix = '/api';
 // Register routes
 app.use(`${apiPrefix}/account`, accountRoutes);
 app.use(`${apiPrefix}/services`, serviceRoutes);
+app.use(`${apiPrefix}/reciepts`, receiptRoutes);
 
 // Root route with basic info
 app.get('/', (req, res) => {
@@ -42,12 +44,22 @@ app.get('/', (req, res) => {
     endpoints: {
       account: `${apiPrefix}/account`,
       services: `${apiPrefix}/services`,
+      reciepts: `${apiPrefix}/reciepts`
     }
   });
 });
 
 // Simple error handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  // Handle malformed JSON bodies from express.json()
+  if (err instanceof SyntaxError && 'body' in err) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid JSON payload',
+      message: err.message
+    });
+  }
+
   console.error('Error:', err.message);
   res.status(500).json({
     success: false,
