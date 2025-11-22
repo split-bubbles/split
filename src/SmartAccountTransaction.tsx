@@ -2,11 +2,29 @@ import { useCurrentUser, useSendUserOperation } from "@coinbase/cdp-hooks";
 import { Button } from "@coinbase/cdp-react/components/ui/Button";
 import { LoadingSkeleton } from "@coinbase/cdp-react/components/ui/LoadingSkeleton";
 import { useMemo, useState } from "react";
+import { encodeFunctionData, parseUnits, type Address } from "viem";
 
 interface Props {
   balance?: string;
   onSuccess?: () => void;
 }
+
+// USDC contract address on Base Sepolia (should match the one in SignedInScreen.tsx)
+const USDC_ADDRESS: Address = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
+
+// ERC20 ABI for transfer function
+const ERC20_TRANSFER_ABI = [
+  {
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    name: "transfer",
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+] as const;
 
 /**
  * This component demonstrates how to send a gasless transaction using Smart Accounts.
@@ -36,14 +54,21 @@ function SmartAccountTransaction(props: Props) {
       setErrorMessage("");
       setUserOperationHash("");
 
+      // 0.1 USDC = 100000 (6 decimals)
+      const usdcAmount = parseUnits("0.1", 6);
+
       const result = await sendUserOperation({
         evmSmartAccount: smartAccount,
         network: "base-sepolia",
         calls: [
           {
-            to: smartAccount, // Send to yourself for testing
-            value: 1000000000000n, // 0.000001 ETH in wei
-            data: "0x", // Empty data for simple transfer
+            to: USDC_ADDRESS,
+            value: 0n, // No ETH being sent
+            data: encodeFunctionData({
+              abi: ERC20_TRANSFER_ABI,
+              functionName: "transfer",
+              args: [smartAccount, usdcAmount], // Send to yourself for testing
+            }),
           },
         ],
       });
@@ -88,7 +113,7 @@ function SmartAccountTransaction(props: Props) {
               <h2 className="card-title">Send a gasless transaction</h2>
               {hasBalance && smartAccount && (
                 <>
-                  <p>Send 0.000001 ETH to yourself on Base Sepolia with no gas fees!</p>
+                  <p>Send 0.1 USDC to yourself on Base Sepolia with no gas fees!</p>
                   <p className="smart-account-info">
                     ✨ <strong>Smart Account Benefits:</strong> No gas fees, better UX, and enhanced
                     security
@@ -105,11 +130,11 @@ function SmartAccountTransaction(props: Props) {
               {!hasBalance && (
                 <>
                   <p>
-                    This example transaction sends a tiny amount of ETH from your wallet to itself.
+                    This example transaction sends 0.1 USDC from your wallet to itself.
                   </p>
                   <p className="smart-account-info">
                     ℹ️ <strong>Note:</strong> Even though this is a gasless transaction, you still
-                    need ETH in your account to send it. Get some from{" "}
+                    need USDC in your account to send it. Get some from{" "}
                     <a
                       href="https://portal.cdp.coinbase.com/products/faucet"
                       target="_blank"

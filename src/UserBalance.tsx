@@ -21,7 +21,7 @@ function UserBalance(props: Props) {
         {balance === undefined && <LoadingSkeleton as="span" className="loading--balance" />}
         {balance !== undefined && (
           <span className="flex-row-container">
-            <img src="/eth.svg" alt="" className="balance-icon" />
+            <img src="/usdc.svg" alt="" className="balance-icon" />
             <span>{balance}</span>
             <span className="sr-only">Ethereum</span>
           </span>
