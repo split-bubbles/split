@@ -7,10 +7,8 @@ Splits is a decentralized application that allows users to manage shared expense
 
 ### Backend
 - The backend is designed to handle AI-related requests and health checks without maintaining a database.
-- Key components include:
-  - **AI Router**: Manages routes for AI queries and responses.
-  - **Health Router**: Provides a health check endpoint.
-  - **Services**: Interact with the 0G Compute API and handle image processing tasks.
+- We used [0g-compute-ts-starter-kit](https://github.com/0gfoundation/0g-compute-ts-starter-kit) repo as a base for our backend implementation.
+
 
 ## Getting Started
 1. **Clone the Repository**:
