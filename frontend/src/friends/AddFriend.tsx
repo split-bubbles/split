@@ -5,9 +5,7 @@ import { createPublicClient, http, isAddress, getAddress, encodeFunctionData, ty
 import { normalize } from "viem/ens";
 import { baseSepolia, sepolia } from "viem/chains";
 import { FRIEND_REQUESTS_ABI, FRIEND_REQUESTS_CONTRACT_ADDRESS } from "../contracts/FriendRequests";
-import FriendNameDisplay from "./FriendNameDisplay";
-import { TransactionLink, AddressLink } from "./TransactionLink";
-import { useEnsNameOptimistic } from "../hooks/useEnsNameOptimistic";
+import { TransactionLink } from "./TransactionLink";
 
 // USDC contract address on Base Sepolia
 const USDC_ADDRESS: Address = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
@@ -25,61 +23,6 @@ const ERC20_ABI = [
     type: "function",
   },
 ] as const;
-
-/**
- * Component to display a friend in the friends list with ENS name resolution
- */
-function FriendListItem({ 
-  address, 
-  sentRequestTransactions 
-}: { 
-  address: Address;
-  sentRequestTransactions: Map<string, `0x${string}`>;
-}) {
-  const { data: ensName } = useEnsNameOptimistic({
-    address: address as `0x${string}` | undefined,
-    l1ChainId: sepolia.id,
-    l2ChainId: baseSepolia.id,
-  });
-
-  return (
-    <div
-      style={{
-        padding: "0.75rem",
-        borderRadius: "0.5rem",
-        border: "1px solid #ccc",
-        display: "flex",
-        flexDirection: "column",
-        gap: "0.5rem",
-      }}
-    >
-      <div>
-        <p style={{ margin: 0, fontWeight: "500" }}>
-          {ensName ? (
-            <span>{ensName}</span>
-          ) : (
-            <span>{address.slice(0, 6)}...{address.slice(-4)}</span>
-          )}
-        </p>
-        <p style={{ margin: 0, fontSize: "0.875rem", color: "#666" }}>
-          {ensName ? (
-            <span>{address.slice(0, 6)}...{address.slice(-4)}</span>
-          ) : (
-            <AddressLink address={address} />
-          )}
-        </p>
-        {sentRequestTransactions.has(address.toLowerCase()) && (
-          <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.75rem" }}>
-            <TransactionLink 
-              hash={sentRequestTransactions.get(address.toLowerCase())!} 
-              label="View Request Transaction" 
-            />
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
 
 /**
  * Component for sending friend requests using the smart contract

@@ -46,7 +46,7 @@ interface AddExpenseProps { openTrigger?: number; isModal?: boolean }
 function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
   const { evmAddress: currentAddress } = useEvmAddress();
   const { currentUser } = useCurrentUser();
-  const { sendUserOperation, status: transferStatus } = useSendUserOperation();
+  const { sendUserOperation } = useSendUserOperation();
   const [isOpen, setIsOpen] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);

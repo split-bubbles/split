@@ -1,4 +1,3 @@
-import { useEvmAddress } from "@coinbase/cdp-hooks";
 import { useState, useEffect } from "react";
 import { createPublicClient, http, type Address, type Abi } from "viem";
 import { baseSepolia } from "viem/chains";
@@ -50,9 +49,9 @@ export function useReadContract<TAbi extends Abi, TFunctionName extends string>(
       const result = await publicClient.readContract({
         address,
         abi,
-        functionName,
-        args: args as readonly unknown[],
-      });
+        functionName: functionName as any,
+        args: args as any,
+      } as any);
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));

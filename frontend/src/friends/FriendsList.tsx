@@ -5,14 +5,12 @@ import { baseSepolia, sepolia } from "viem/chains";
 import { type Address, encodeFunctionData } from "viem";
 import { FRIEND_REQUESTS_ABI, FRIEND_REQUESTS_CONTRACT_ADDRESS } from "../contracts/FriendRequests";
 import { useEnsNameOptimistic } from "../hooks/useEnsNameOptimistic";
-import { TransactionLink, AddressLink } from "./TransactionLink";
+import { AddressLink } from "./TransactionLink";
 
 function FriendListItem({ 
-  address, 
-  sentRequestTransactions 
+  address
 }: { 
   address: Address;
-  sentRequestTransactions: Map<string, `0x${string}`>;
 }) {
   const { data: ensName } = useEnsNameOptimistic({
     address: address as `0x${string}` | undefined,
@@ -21,7 +19,6 @@ function FriendListItem({
   });
 
   const displayName = ensName || `${address.slice(0, 6)}...${address.slice(-4)}`;
-  const displayAddress = address.slice(0, 6) + "..." + address.slice(-4);
 
   return (
     <div
@@ -59,7 +56,6 @@ function FriendsList() {
   const { currentUser } = useCurrentUser();
   const { sendUserOperation, status } = useSendUserOperation();
   const [friends, setFriends] = useState<Address[]>([]);
-  const [sentRequestTransactions, setSentRequestTransactions] = useState<Map<string, `0x${string}`>>(new Map());
   const [isRemovingAll, setIsRemovingAll] = useState(false);
 
   const smartAccount = currentUser?.evmSmartAccounts?.[0];
@@ -81,23 +77,6 @@ function FriendsList() {
       setFriends(contractFriends as Address[]);
     }
   }, [contractFriends]);
-
-  // Load sent request transactions from localStorage
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("sent-friend-requests");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        const map = new Map<string, `0x${string}`>();
-        Object.entries(parsed).forEach(([key, value]) => {
-          map.set(key.toLowerCase(), value as `0x${string}`);
-        });
-        setSentRequestTransactions(map);
-      }
-    } catch (e) {
-      console.error("Failed to load sent friend requests:", e);
-    }
-  }, []);
 
   // Refetch friends after successful removal
   useEffect(() => {
@@ -199,7 +178,6 @@ function FriendsList() {
           <FriendListItem 
             key={friendAddress}
             address={friendAddress}
-            sentRequestTransactions={sentRequestTransactions}
           />
         ))}
       </div>

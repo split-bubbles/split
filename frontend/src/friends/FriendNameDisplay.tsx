@@ -1,5 +1,4 @@
 import { baseSepolia, sepolia } from "viem/chains";
-import { type Address } from "viem";
 import { useEnsNameOptimistic } from "../hooks/useEnsNameOptimistic";
 
 /**

@@ -113,10 +113,10 @@ function PendingApprovals() {
               abi: FRIEND_REQUESTS_ABI,
               functionName: "requests",
               args: [currentAddress, addr],
-            }) as { from: Address; timestamp: bigint; exists: boolean };
+            }) as readonly [`0x${string}`, bigint, boolean];
             
-            if (request.exists) {
-              timestamps.set(addrLower, Number(request.timestamp) * 1000);
+            if (request[2]) { // exists is the third element
+              timestamps.set(addrLower, Number(request[1]) * 1000); // timestamp is the second element
             }
           } catch (e) {
             console.error("Failed to fetch timestamp:", e);

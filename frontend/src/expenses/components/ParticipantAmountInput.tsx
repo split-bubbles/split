@@ -1,7 +1,6 @@
 import React from 'react';
 import { useEnsNameOptimistic } from '../../hooks/useEnsNameOptimistic';
 import { baseSepolia, sepolia } from 'viem/chains';
-import { type Address } from 'viem';
 
 interface ParticipantAmountInputProps {
   address: string;

@@ -18,7 +18,6 @@ function BaseNameResolver({ onResolved }: BaseNameResolverProps = {}) {
     l2ChainId: baseSepolia.id,
   });
 
-  const hasName = !!ensName && !isLoading;
   const isFullyLoaded = !isLoading;
 
   // Notify parent component when name resolution is complete
