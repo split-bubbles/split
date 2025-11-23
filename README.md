@@ -17,6 +17,23 @@ Splits is a decentralized application that allows users to manage shared expense
    cd split
    ```
 
+Note: Make sure to set up your environment variables by copying the example files (`.env.example`) in both the `backend` and `frontend` directories to `.env` and filling in the required values.
+
+2. **Start the Backend**:
+   ```
+   cd backend
+   npm install
+   npm run build
+   npm start
+   ```
+
+3. **Start the Frontend**:
+   ```
+   cd ../frontend
+   npm install
+   npm run dev
+   ```   
+
 
 ## AI Usage 
 We used Github Copilot to help us generate boilerplate code and write some UI components faseter.
