@@ -12,9 +12,9 @@ export const SplitModeSelector: React.FC<SplitModeSelectorProps> = ({ mode, onCh
         onClick={() => onChange('equal')}
         style={{
           padding: '6px 12px',
-          background: mode === 'equal' ? 'linear-gradient(135deg,#1e3a8a,#2563eb)' : '#1f2937',
-          color: '#f1f5f9',
-          border: '1px solid #334155',
+          background: mode === 'equal' ? 'linear-gradient(135deg,#16a34a,#10b981)' : '#f1f5f9',
+          color: mode === 'equal' ? '#ffffff' : '#1a202c',
+          border: '1px solid #e2e8f0',
           borderRadius: '6px',
           cursor: 'pointer',
           fontSize: '13px',
@@ -28,9 +28,9 @@ export const SplitModeSelector: React.FC<SplitModeSelectorProps> = ({ mode, onCh
         onClick={() => onChange('custom')}
         style={{
           padding: '6px 12px',
-          background: mode === 'custom' ? 'linear-gradient(135deg,#1e3a8a,#2563eb)' : '#1f2937',
-          color: '#f1f5f9',
-          border: '1px solid #334155',
+          background: mode === 'custom' ? 'linear-gradient(135deg,#16a34a,#10b981)' : '#f1f5f9',
+          color: mode === 'custom' ? '#ffffff' : '#1a202c',
+          border: '1px solid #e2e8f0',
           borderRadius: '6px',
           cursor: 'pointer',
           fontSize: '13px',

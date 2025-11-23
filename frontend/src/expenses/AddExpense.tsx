@@ -1,10 +1,12 @@
 import { Button } from "@coinbase/cdp-react/components/ui/Button";
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useEvmAddress, useCurrentUser, useSendUserOperation } from "@coinbase/cdp-hooks";
 import { useReadContract } from "../hooks/useReadContract";
 import { type Address, encodeFunctionData, parseUnits } from "viem";
 import { FRIEND_REQUESTS_ABI, FRIEND_REQUESTS_CONTRACT_ADDRESS } from "../contracts/FriendRequests";
 import FriendNameDisplay from "../friends/FriendNameDisplay";
+import { useEnsNameOptimistic } from "../hooks/useEnsNameOptimistic";
+import { baseSepolia, sepolia } from "viem/chains";
 import { SplitModeSelector } from "./components/SplitModeSelector";
 import { ParticipantAmountInput } from "./components/ParticipantAmountInput";
 import { SplitSummaryBar } from "./components/SplitSummaryBar";
@@ -51,6 +53,10 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
   const [lastTrigger, setLastTrigger] = useState(0);
   const [selectedFriends, setSelectedFriends] = useState<Set<Address>>(new Set());
   const [friends, setFriends] = useState<Address[]>([]);
+  const [friendInput, setFriendInput] = useState("");
+  const [showFriendSuggestions, setShowFriendSuggestions] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const friendInputRef = useRef<HTMLDivElement>(null);
   const [description, setDescription] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
   const [splitMode, setSplitMode] = useState<"equal" | "custom">("equal");
@@ -99,6 +105,28 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
       setIsOpen(true);
     }
   }, [openTrigger, lastTrigger]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (friendInputRef.current && !friendInputRef.current.contains(target)) {
+        setShowFriendSuggestions(false);
+      }
+    };
+
+    if (showFriendSuggestions) {
+      // Use a slight delay to allow click events on dropdown items to fire first
+      const timeoutId = setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+      }, 0);
+      
+      return () => {
+        clearTimeout(timeoutId);
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showFriendSuggestions]);
 
   const handleCancel = (e?: React.MouseEvent) => {
     if (e) {
@@ -200,8 +228,105 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
     };
   }, [isDragging, handleDragMove, handleDragEnd]);
 
-  const handleToggleFriend = (friend: Address) => {
-    setSelectedFriends(prev => { const next = new Set(prev); next.has(friend) ? next.delete(friend) : next.add(friend); return next; });
+  const handleRemoveFriend = (friend: Address) => {
+    setSelectedFriends(prev => {
+      const next = new Set(prev);
+      next.delete(friend);
+      return next;
+    });
+  };
+
+  const handleAddFriend = (friend: Address) => {
+    if (!selectedFriends.has(friend)) {
+      setSelectedFriends(prev => new Set(prev).add(friend));
+    }
+    setFriendInput("");
+    setShowFriendSuggestions(false);
+    setHighlightedIndex(0);
+  };
+
+  // Store ENS names for filtering
+  const [ensNameMap, setEnsNameMap] = useState<Map<Address, string>>(new Map());
+  
+  const handleEnsResolved = useCallback((address: Address, name: string | null) => {
+    setEnsNameMap(prev => {
+      const currentName = prev.get(address);
+      // Only update if the name actually changed
+      if (currentName === name) {
+        return prev;
+      }
+      const next = new Map(prev);
+      if (name) {
+        next.set(address, name);
+      } else {
+        next.delete(address);
+      }
+      return next;
+    });
+  }, []);
+
+  // Component to resolve ENS name for a friend (for filtering)
+  const FriendEnsResolver = React.memo(({ address, onResolved }: { address: Address; onResolved: (address: Address, name: string | null) => void }) => {
+    const { data: ensName } = useEnsNameOptimistic({
+      address: address as `0x${string}` | undefined,
+      l1ChainId: sepolia.id,
+      l2ChainId: baseSepolia.id,
+    });
+    
+    const prevEnsNameRef = useRef<string | null | undefined>(undefined);
+    
+    useEffect(() => {
+      // Only call onResolved if the ENS name actually changed
+      if (prevEnsNameRef.current !== ensName) {
+        prevEnsNameRef.current = ensName;
+        onResolved(address, ensName || null);
+      }
+    }, [ensName, address, onResolved]);
+    
+    return null;
+  });
+
+  // Filter friends based on input (address or ENS name)
+  const filteredFriends = useMemo(() => {
+    if (!friendInput.trim()) {
+      // Show all unselected friends when input is empty
+      return friends.filter(f => !selectedFriends.has(f));
+    }
+    const input = friendInput.toLowerCase().trim();
+    // Remove 0x prefix from input if present for matching
+    const inputWithoutPrefix = input.startsWith('0x') ? input.slice(2) : input;
+    
+    return friends.filter(f => {
+      if (selectedFriends.has(f)) return false;
+      const address = f.toLowerCase();
+      // Remove 0x prefix for matching
+      const addressWithoutPrefix = address.startsWith('0x') ? address.slice(2) : address;
+      // Match by address (partial match) - check both with and without 0x
+      const addressMatch = address.includes(input) || addressWithoutPrefix.includes(inputWithoutPrefix);
+      
+      // Also match by ENS name if available
+      const ensName = ensNameMap.get(f);
+      const ensMatch = ensName ? ensName.toLowerCase().includes(input) : false;
+      
+      return addressMatch || ensMatch;
+    });
+  }, [friends, friendInput, selectedFriends, ensNameMap]);
+
+  const handleFriendInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (filteredFriends.length > 0) {
+        handleAddFriend(filteredFriends[highlightedIndex] || filteredFriends[0]);
+      }
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightedIndex(prev => Math.min(prev + 1, filteredFriends.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightedIndex(prev => Math.max(prev - 1, 0));
+    } else if (e.key === "Escape") {
+      setShowFriendSuggestions(false);
+    }
   };
   const updateParticipantAmount = (address: Address, amount: number) => { if (splitMode === "equal") return; setParticipantSplits(new Map(participantSplits.set(address, amount))); };
   const updateSelfAmount = (amount: number) => { if (splitMode === "equal") return; setSelfSplit(amount); };
@@ -333,37 +458,134 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
 
   const content = (
     <div className="card card--add-expense" style={{ maxWidth: "100%", height: isModal ? "auto" : "100vh", maxHeight: isModal ? "95vh" : "100vh", minHeight: isModal ? "85vh" : "100vh", display: "flex", flexDirection: "column", padding: 0 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1.25rem", borderBottom: "1px solid #334155", backgroundColor: "#0f172a", color: "#e2e8f0" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1.25rem", borderBottom: "1px solid #e2e8f0", backgroundColor: "#ffffff", color: "#1a202c" }}>
         <h2 className="card-title" style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}>Add an expense</h2>
-        <button onClick={(e) => handleCancel(e)} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#e2e8f0", padding: "0.25rem", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+        <button onClick={(e) => handleCancel(e)} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#1a202c", padding: "0.25rem", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
       </div>
-      <div style={{ flex: 1, overflowY: "auto", padding: "0", paddingBottom: "180px", backgroundColor: "#0f172a", display: "flex", flexDirection: "column" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "0", paddingBottom: "180px", backgroundColor: "#ffffff", display: "flex", flexDirection: "column" }}>
         <div className="flex-col-container" style={{ gap: "1.5rem", flex: 1 }}>
           <div className="flex-col-container" style={{ gap: "0.75rem" }}>
-            <label style={{ fontSize: "0.75rem", letterSpacing: "0.5px", textTransform: "uppercase", color: "#94a3b8", fontWeight: 600 }}>With you and:</label>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-              {friends.length === 0 ? <p style={{ color: "#64748b", fontSize: "0.75rem" }}>Add friends first to split expenses</p> : friends.map(f => (
-                <button key={f} onClick={() => handleToggleFriend(f)} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.4rem 0.7rem", borderRadius: "18px", border: selectedFriends.has(f) ? "1px solid #1cc29f" : "1px solid #475569", backgroundColor: "#1e293b", cursor: "pointer", fontSize: "0.7rem", color: "#e2e8f0", fontWeight: 500 }}>
-                  <FriendNameDisplay address={f} />{selectedFriends.has(f) && <span>✕</span>}
-                </button>))}
-            </div>
+            <label style={{ fontSize: "0.75rem", letterSpacing: "0.5px", textTransform: "uppercase", color: "#64748b", fontWeight: 600 }}>With you and:</label>
+            {friends.length === 0 ? (
+              <p style={{ color: "#64748b", fontSize: "0.75rem" }}>Add friends first to split expenses</p>
+            ) : (
+              <>
+                <div ref={friendInputRef} style={{ position: "relative" }}>
+                  {/* Resolve ENS names for all friends (hidden, for filtering) */}
+                  {friends.slice(0, 50).map(friend => (
+                    <FriendEnsResolver 
+                      key={friend} 
+                      address={friend} 
+                      onResolved={handleEnsResolved} 
+                    />
+                  ))}
+                  <input
+                    type="text"
+                    value={friendInput}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFriendInput(value);
+                      setShowFriendSuggestions(true);
+                      setHighlightedIndex(0);
+                    }}
+                    onFocus={() => {
+                      if (friends.length > 0) {
+                        setShowFriendSuggestions(true);
+                      }
+                    }}
+                    onKeyDown={handleFriendInputKeyDown}
+                    placeholder="Type friend address or ENS name..."
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem 1rem",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "0.5rem",
+                      backgroundColor: "#f1f5f9",
+                      fontSize: "0.9rem",
+                      color: "#1a202c",
+                      outline: "none"
+                    }}
+                  />
+                  {showFriendSuggestions && filteredFriends.length > 0 && (
+                    <div 
+                      style={{
+                        position: "absolute",
+                        top: "100%",
+                        left: 0,
+                        right: 0,
+                        marginTop: "4px",
+                        backgroundColor: "#ffffff",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "0.5rem",
+                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                        maxHeight: "200px",
+                        overflowY: "auto",
+                        zIndex: 10000
+                      }}
+                      onMouseDown={(e) => e.preventDefault()}
+                    >
+                      {filteredFriends.map((friend, idx) => (
+                        <button
+                          key={friend}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleAddFriend(friend);
+                          }}
+                          onMouseEnter={() => setHighlightedIndex(idx)}
+                          style={{
+                            width: "100%",
+                            padding: "0.75rem 1rem",
+                            textAlign: "left",
+                            backgroundColor: highlightedIndex === idx ? "#f1f5f9" : "#ffffff",
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: "0.875rem",
+                            color: "#1a202c",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.5rem"
+                          }}
+                        >
+                          <FriendNameDisplay address={friend} />
+                          <span style={{ fontSize: "0.75rem", color: "#64748b" }}>{friend.slice(0, 6)}...{friend.slice(-4)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {selectedFriends.size > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                    {Array.from(selectedFriends).map(f => (
+                      <div key={f} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.4rem 0.7rem", borderRadius: "18px", border: "1px solid #1cc29f", backgroundColor: "#f0fdf4", fontSize: "0.7rem", color: "#1a202c", fontWeight: 500 }}>
+                        <FriendNameDisplay address={f} />
+                        <button
+                          onClick={() => handleRemoveFriend(f)}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "#1cc29f", fontSize: "0.875rem", padding: 0, display: "flex", alignItems: "center" }}
+                        >✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </div>
           <div className="flex-col-container" style={{ gap: "0.5rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.65rem 0.85rem", border: "1px solid #334155", borderRadius: "0.5rem", backgroundColor: "#1e293b" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.75rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.5rem", backgroundColor: "#f1f5f9" }}>
               <span style={{ fontSize: "1.5rem" }}>📝</span>
-              <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="Description" style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: "0.9rem", color: "#f1f5f9" }} />
+              <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="Description" style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: "0.9rem", color: "#1a202c" }} />
             </div>
           </div>
           <div className="flex-col-container" style={{ gap: "0.5rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.65rem 0.85rem", border: "1px solid #334155", borderRadius: "0.5rem", backgroundColor: "#1e293b" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.75rem 1rem", border: "1px solid #e2e8f0", borderRadius: "0.5rem", backgroundColor: "#f1f5f9" }}>
               <span style={{ fontSize: "1.5rem" }}>💵</span>
-              <input type="text" inputMode="decimal" value={totalAmount} onChange={e => { let raw = e.target.value; let cleaned = raw.replace(/[^0-9.]/g, "").replace(/(\..*)\./, "$1"); const parts = cleaned.split('.'); if (parts[1]) parts[1] = parts[1].slice(0,8); setTotalAmount(parts.join('.')); }} placeholder="0.00" style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: "1.1rem", fontWeight: 600, color: "#f1f5f9" }} />
+              <input type="text" inputMode="decimal" value={totalAmount} onChange={e => { let raw = e.target.value; let cleaned = raw.replace(/[^0-9.]/g, "").replace(/(\..*)\./, "$1"); const parts = cleaned.split('.'); if (parts[1]) parts[1] = parts[1].slice(0,8); setTotalAmount(parts.join('.')); }} placeholder="0.00" style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: "0.9rem", fontWeight: 600, color: "#1a202c" }} />
             </div>
           </div>
           {selectedFriends.size > 0 && enteredTotal > 0 && (
             <div className="flex-col-container" style={{ gap: "0.75rem" }}>
               <SplitModeSelector mode={splitMode} onChange={setSplitMode} />
-              <p style={{ fontSize: "0.7rem", letterSpacing: "0.5px", textTransform: "uppercase", color: "#94a3b8", fontWeight: 600 }}>Split by exact amounts</p>
+              <p style={{ fontSize: "0.7rem", letterSpacing: "0.5px", textTransform: "uppercase", color: "#64748b", fontWeight: 600 }}>Split by exact amounts</p>
               {currentAddress && <ParticipantAmountInput address={currentAddress as Address} displayName="You" amount={selfSplit} disabled={splitMode === 'equal'} onChange={updateSelfAmount} />}
               {Array.from(selectedFriends).map(addr => (
                 <ParticipantAmountInput key={addr} address={addr} amount={participantSplits.get(addr) || 0} disabled={splitMode === 'equal'} onChange={val => updateParticipantAmount(addr, val)} />
@@ -385,7 +607,7 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
               left: 0,
               right: 0,
               bottom: 0,
-              background: "rgba(0, 0, 0, 0.5)",
+              background: "rgba(0, 0, 0, 0.15)",
               backdropFilter: "blur(4px)",
               zIndex: 1001,
               animation: isClosingDrawer ? "fadeOut 0.3s ease-out" : "fadeIn 0.2s ease-out",
@@ -398,19 +620,19 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
               position: "fixed",
               left: 0,
               right: 0,
-              bottom: isClosingDrawer ? undefined : (drawerDragY > 0 ? `calc(80px - ${drawerDragY}px)` : "80px"),
+              bottom: drawerDragY > 0 ? `calc(80px - ${drawerDragY}px)` : "80px",
               maxHeight: "calc(85vh - 80px)",
-              backgroundColor: "#0f172a",
-              borderTop: "1px solid #334155",
+              backgroundColor: "#ffffff",
+              borderTop: "1px solid #e2e8f0",
               borderTopLeftRadius: "1.5rem",
               borderTopRightRadius: "1.5rem",
               zIndex: 1002,
               display: "flex",
               flexDirection: "column",
-              boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.3)",
-              animation: isClosingDrawer ? "slideOutDown 0.3s ease-out" : (showAIOptions ? "slideInUp 0.3s ease-out" : undefined),
-              transform: isClosingDrawer ? undefined : (drawerDragY > 0 ? `translateY(${drawerDragY}px)` : undefined),
-              transition: isClosingDrawer ? "none" : (drawerDragY === 0 ? "transform 0.1s ease-out" : undefined),
+              boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.1)",
+              animation: isClosingDrawer ? undefined : (showAIOptions ? "slideInUp 0.3s ease-out" : undefined),
+              transform: isClosingDrawer ? "translateY(100%)" : (drawerDragY > 0 ? `translateY(${drawerDragY}px)` : undefined),
+              transition: isClosingDrawer ? "transform 0.3s ease-out" : (drawerDragY === 0 ? "transform 0.1s ease-out" : undefined),
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -426,9 +648,9 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
                 justifyContent: "center",
                 gap: "0.5rem",
                 padding: "1rem 1.25rem",
-                backgroundColor: "#1e293b",
+                backgroundColor: "#f1f5f9",
                 border: "none",
-                borderBottom: "1px solid #334155",
+                borderBottom: "1px solid #e2e8f0",
                 borderTopLeftRadius: "1.5rem",
                 borderTopRightRadius: "1.5rem",
                 cursor: isDragging ? "grabbing" : "grab",
@@ -436,18 +658,18 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
                 fontWeight: 600,
                 letterSpacing: "0.5px",
                 textTransform: "uppercase",
-                color: "#e2e8f0",
+                color: "#1a202c",
                 transition: "background-color 0.2s",
                 userSelect: "none",
               }}
               onMouseEnter={(e) => {
                 if (!isDragging) {
-                  e.currentTarget.style.backgroundColor = "#334155";
+                  e.currentTarget.style.backgroundColor = "#e2e8f0";
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isDragging) {
-                  e.currentTarget.style.backgroundColor = "#1e293b";
+                  e.currentTarget.style.backgroundColor = "#f1f5f9";
                 }
               }}
             >
@@ -493,7 +715,7 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
           right: 0,
           bottom: "80px",
           padding: 0,
-          backgroundColor: "#0f172a",
+          backgroundColor: "#ffffff",
           zIndex: 1001,
         }}>
           <button 
@@ -510,23 +732,23 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
               alignItems: "center", 
               justifyContent: "center", 
               gap: "0.5rem",
-              padding: "0.75rem 1rem", 
-              backgroundColor: "#1e293b", 
-              border: "1px solid #334155", 
+              padding: "0.75rem 1.25rem", 
+              backgroundColor: "#f1f5f9", 
+              border: "1px solid #e2e8f0", 
               borderRadius: "0.5rem", 
               cursor: "pointer", 
-              fontSize: "0.875rem", 
+              fontSize: "0.9rem", 
               fontWeight: 600, 
               letterSpacing: "0.5px", 
-              color: "#e2e8f0",
+              color: "#1a202c",
               transition: "all 0.2s"
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#334155";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "#1e293b";
-            }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#e2e8f0";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "#f1f5f9";
+                }}
           >
             <span style={{ fontSize: "1rem", transform: showAIOptions ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.3s ease" }}>▲</span>
             <span>🤖</span>
@@ -543,26 +765,26 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
         right: 0,
         bottom: 0,
         padding: "1rem 1.25rem",
-        borderTop: "1px solid #334155",
-        backgroundColor: "#0f172a",
+        borderTop: "1px solid #e2e8f0",
+        backgroundColor: "#ffffff",
         zIndex: 1003,
-        boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.3)"
+        boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.1)"
       }}>
         {showSuccess ? (
-          <div style={{
-            width: "100%",
-            padding: "0.75rem 1.5rem",
-            borderRadius: "0.5rem",
-            background: "linear-gradient(135deg, #1cc29f 0%, #10b981 100%)",
-            color: "#ffffff",
-            fontSize: "1rem",
-            fontWeight: 600,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "0.5rem",
-            transition: "all 0.3s",
-          }}>
+          <div             style={{
+              width: "100%",
+              padding: "0.75rem 1.25rem",
+              borderRadius: "0.5rem",
+              background: "linear-gradient(135deg, #1cc29f 0%, #10b981 100%)",
+              color: "#ffffff",
+              fontSize: "0.9rem",
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.5rem",
+              transition: "all 0.3s",
+            }}>
             <span style={{ fontSize: "1.25rem" }}>✓</span>
             <span>Expense Finalized!</span>
           </div>
@@ -572,10 +794,10 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
             disabled={!canFinalize || isFinalizing}
             style={{
               width: "100%",
-              padding: "0.75rem 1.5rem",
+              padding: "0.75rem 1.25rem",
               borderRadius: "0.5rem",
               border: "none",
-              fontSize: "1rem",
+              fontSize: "0.9rem",
               fontWeight: 600,
               cursor: (canFinalize && !isFinalizing) ? "pointer" : "not-allowed",
               background: (canFinalize && !isFinalizing)

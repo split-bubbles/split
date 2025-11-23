@@ -97,7 +97,6 @@ function Header() {
                 style={{ fontSize: "0.875rem", display: "flex", alignItems: "center", gap: "0.25rem" }}
               >
                 <BaseNameResolver onResolved={(resolved) => {
-                  console.log("Header: onResolved callback called with:", resolved);
                   setHasBasename(resolved);
                 }} />
                 {!hasBasename && evmAddress && (

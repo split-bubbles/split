@@ -28,22 +28,9 @@ function BaseNameResolver({ onResolved }: BaseNameResolverProps = {}) {
     // Only notify when we're done checking
     if (isFullyLoaded) {
       const nameFound = !!ensName;
-      console.log("BaseNameResolver: Notifying parent, hasName:", nameFound, "ensName:", ensName);
       onResolved(nameFound);
     }
   }, [onResolved, address, ensName, isFullyLoaded]);
-
-  // Debug logging
-  useEffect(() => {
-    if (address) {
-      console.log("BaseNameResolver state:", {
-        address,
-        ensName,
-        isLoading,
-        error: error?.message,
-      });
-    }
-  }, [address, ensName, isLoading, error]);
 
   if (!address) {
     return null;

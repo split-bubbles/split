@@ -182,11 +182,11 @@ export const AiPanel: React.FC<AiPanelProps> = ({
     <div style={{
       marginTop: '20px',
       padding: '16px',
-      background: 'linear-gradient(135deg, rgba(15,23,42,0.85), rgba(30,41,59,0.85))',
-      border: '1px solid #334155',
+      background: '#ffffff',
+      border: '1px solid #e2e8f0',
       borderRadius: '12px'
     }}>
-      <h3 style={{ margin: 0, marginBottom: '12px', fontSize: '14px', letterSpacing: '0.5px', fontWeight: 600, color: '#e2e8f0' }}>AI Receipt Assist</h3>
+      <h3 style={{ margin: 0, marginBottom: '12px', fontSize: '14px', letterSpacing: '0.5px', fontWeight: 600, color: '#1a202c' }}>AI Receipt Assist</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ position: 'relative' }}>
@@ -197,17 +197,17 @@ export const AiPanel: React.FC<AiPanelProps> = ({
               justifyContent: 'center',
               gap: '6px',
               padding: '14px 10px',
-              border: '2px dashed #475569',
+              border: '2px dashed #e2e8f0',
               borderRadius: '10px',
-              background: hasImage ? 'rgba(15,23,42,0.6)' : 'rgba(30,41,59,0.4)',
+              background: hasImage ? '#f1f5f9' : '#fafbfc',
               cursor: 'pointer'
             }}>
               {hasImage ? (
-                <span style={{ fontSize: '11px', color: '#94a3b8' }}>Change Image</span>
+                <span style={{ fontSize: '11px', color: '#64748b' }}>Change Image</span>
               ) : (
                 <>
                   <span style={{ fontSize: '26px' }}>🧾📄</span>
-                  <span style={{ fontSize: '11px', color: '#94a3b8' }}>Browse receipt</span>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>Browse receipt</span>
                 </>
               )}
               <input id="ai-upload" type="file" accept="image/*" onChange={onFileChange} style={{ display: 'none' }} />
@@ -221,22 +221,22 @@ export const AiPanel: React.FC<AiPanelProps> = ({
             style={{
               width: '100%',
               padding: '10px 12px',
-              background: '#0f172a',
-              border: '1px solid #475569',
+              background: '#f1f5f9',
+              border: '1px solid #e2e8f0',
               borderRadius: '8px',
-              color: '#f1f5f9',
+              color: '#1a202c',
               fontSize: '12px'
             }}
           />
         </div>
         {hasImage && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {imageData && <img src={imageData} alt="preview" style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #334155' }} />}
-            {!imageData && imageUrl && <img src={imageUrl} alt="preview" style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #334155' }} />}
-            <span style={{ fontSize: '11px', color: '#94a3b8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{imageUrl || 'Image loaded (' + (imageData ? (imageData.length/1024).toFixed(1)+' KB' : '') + ')'}</span>
+            {imageData && <img src={imageData} alt="preview" style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e2e8f0' }} />}
+            {!imageData && imageUrl && <img src={imageUrl} alt="preview" style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e2e8f0' }} />}
+            <span style={{ fontSize: '11px', color: '#64748b', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{imageUrl || 'Image loaded (' + (imageData ? (imageData.length/1024).toFixed(1)+' KB' : '') + ')'}</span>
             <button
               onClick={() => { setImageData(null); setImageUrl(''); setParsed(null); }}
-              style={{ background: '#1e293b', border: '1px solid #334155', color: '#f87171', fontSize: '11px', padding: '6px 8px', borderRadius: '6px', cursor: 'pointer' }}
+              style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#ef4444', fontSize: '11px', padding: '6px 8px', borderRadius: '6px', cursor: 'pointer' }}
             >✕ Remove</button>
           </div>
         )}
@@ -248,9 +248,9 @@ export const AiPanel: React.FC<AiPanelProps> = ({
         style={{
           width: '100%',
           minHeight: '70px',
-          background: '#0f172a',
-          color: '#f1f5f9',
-          border: '1px solid #475569',
+          background: '#f1f5f9',
+          color: '#1a202c',
+          border: '1px solid #e2e8f0',
           borderRadius: '8px',
           padding: '8px',
           fontSize: '13px',
@@ -291,10 +291,10 @@ export const AiPanel: React.FC<AiPanelProps> = ({
       {error && <div style={{ marginTop: '10px', color: '#f87171', fontSize: '12px' }}>{error}</div>}
       {parsed && (
         <div style={{ marginTop: '14px' }}>
-          <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '6px' }}>Parsed Items ({parsed.items.length})</div>
-          <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid #334155', borderRadius: '8px', padding: '8px', background: 'rgba(15,23,42,0.6)' }}>
+          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>Parsed Items ({parsed.items.length})</div>
+          <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px', background: '#f1f5f9' }}>
             {parsed.items.map((it, idx) => (
-              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#cbd5e1', padding: '2px 0' }}>
+              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#1a202c', padding: '2px 0' }}>
                 <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '8px' }}>{it.description}</span>
                 <span>{it.amount.toFixed(2)}</span>
               </div>
@@ -308,21 +308,21 @@ export const AiPanel: React.FC<AiPanelProps> = ({
             <div style={{ 
               marginTop: '10px', 
               padding: '10px 12px',
-              background: 'rgba(15,23,42,0.6)', 
-              border: '1px solid #334155', 
+              background: '#f1f5f9', 
+              border: '1px solid #e2e8f0', 
               borderRadius: '8px',
               fontSize: '12px', 
-              color: '#cbd5e1',
+              color: '#1a202c',
               lineHeight: '1.5'
             }}>
-              <div style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', marginBottom: '6px' }}>AI Summary</div>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>AI Summary</div>
               <div>{splitResult.summary || splitResult.notes}</div>
             </div>
           )}
           {(splitResult.openQuestions && splitResult.openQuestions.length > 0) && (
-            <div style={{ marginTop: '10px', background: 'rgba(15,23,42,0.6)', border: '1px solid #334155', borderRadius: '8px', padding: '8px' }}>
-              <div style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', marginBottom: '6px' }}>Open Questions</div>
-              <ul style={{ margin: 0, paddingLeft: '16px', color: '#cbd5e1', fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ marginTop: '10px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>Open Questions</div>
+              <ul style={{ margin: 0, paddingLeft: '16px', color: '#1a202c', fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {splitResult.openQuestions.map((q, i) => <li key={i}>{q}</li>)}
               </ul>
             </div>

@@ -10,14 +10,14 @@ export const SplitSummaryBar: React.FC<SplitSummaryBarProps> = ({ total, allocat
   const remaining = total - allocated;
   const pct = total > 0 ? Math.min(100, Math.max(0, (allocated / total) * 100)) : 0;
   return (
-    <div style={{ marginTop: '16px', background: 'rgba(30,41,59,0.5)', border: '1px solid #334155', borderRadius: '10px', padding: '12px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '12px', letterSpacing: '0.5px', color: '#cbd5e1' }}>
-        <span>Mode: {mode === 'equal' ? 'Equal' : 'Custom'}</span>
-        <span>Allocated: {allocated.toFixed(2)} / {total.toFixed(2)}</span>
-        <span style={{ color: remaining === 0 ? '#10b981' : '#f59e0b' }}>{remaining === 0 ? 'Balanced' : `Remaining: ${remaining.toFixed(2)}`}</span>
+    <div style={{ marginTop: '16px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '10px', fontSize: '14px', letterSpacing: '0.3px', color: '#1a202c', fontWeight: 500 }}>
+        <span style={{ flex: 1 }}>{mode === 'equal' ? 'Split equally' : 'Custom amounts'}</span>
+        <span style={{ whiteSpace: 'nowrap' }}>${allocated.toFixed(2)} of ${total.toFixed(2)}</span>
+        <span style={{ color: remaining === 0 ? '#10b981' : '#f59e0b', whiteSpace: 'nowrap', fontWeight: 600 }}>{remaining === 0 ? '✓ Balanced' : `$${remaining.toFixed(2)} left`}</span>
       </div>
-      <div style={{ height: '8px', background: '#1e293b', borderRadius: '6px', overflow: 'hidden', border: '1px solid #475569' }}>
-        <div style={{ width: pct + '%', height: '100%', background: 'linear-gradient(90deg,#2563eb,#1e3a8a)', transition: 'width 0.25s' }} />
+      <div style={{ height: '8px', background: '#e2e8f0', borderRadius: '6px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+        <div style={{ width: pct + '%', height: '100%', background: 'linear-gradient(90deg,#16a34a,#10b981)', transition: 'width 0.25s' }} />
       </div>
     </div>
   );

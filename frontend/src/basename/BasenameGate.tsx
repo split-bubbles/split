@@ -55,14 +55,11 @@ function BasenameGate() {
 
     // Listen for ENS name creation event
     const handleEnsNameCreated = async () => {
-      console.log("BasenameGate: Received ens-name-created event");
       const bypassed = checkBypassFromStorage();
-      console.log("BasenameGate: After event, bypassed =", bypassed);
       setIsBypassed(bypassed);
       
       // Immediately refetch ENS name
       if (refetchEnsName) {
-        console.log("BasenameGate: Refetching ENS name after creation");
         refetchEnsName();
       }
       
@@ -74,7 +71,6 @@ function BasenameGate() {
       // Continue refetching periodically for a bit to catch propagation delay
       refetchIntervalId = setInterval(() => {
         if (refetchEnsName) {
-          console.log("BasenameGate: Periodic refetch of ENS name");
           refetchEnsName();
         }
       }, 2000); // Refetch every 2 seconds
@@ -98,7 +94,6 @@ function BasenameGate() {
       const bypassed = checkBypassFromStorage();
       // Always update state and force re-render to ensure component re-renders
       if (bypassed !== isBypassed) {
-        console.log("BasenameGate: Polling detected bypass change:", bypassed);
         setIsBypassed(bypassed);
       }
       // Force re-render every poll to catch localStorage changes immediately
@@ -114,16 +109,6 @@ function BasenameGate() {
     };
   }, [isBypassed, refetchEnsName]);
 
-  // Debug logging
-  useEffect(() => {
-    console.log("BasenameGate state:", {
-      address,
-      baseName,
-      isLoadingName,
-      isBypassed,
-      isCheckingBypass,
-    });
-  }, [address, baseName, isLoadingName, isBypassed, isCheckingBypass]);
 
   if (isCheckingBypass || isLoadingName) {
     return <Loading />;
@@ -131,7 +116,6 @@ function BasenameGate() {
 
   // Show main screen if there's an actual ENS name found OR if bypass is set (temporary after creation)
   if (baseName || isBypassed) {
-    console.log("BasenameGate: Rendering SignedInScreen because baseName =", baseName, "or isBypassed =", isBypassed);
     return <SignedInScreen />;
   }
   
@@ -140,7 +124,6 @@ function BasenameGate() {
   if (bypassedFromStorage && !isBypassed) {
     // Don't clear immediately - give it time for the name to propagate
     // The bypass will be cleared when the name is actually found or on sign out
-    console.log("BasenameGate: Bypass is set, waiting for ENS name to resolve");
   }
 
   // If user doesn't have an ENS name, show the setup screen
