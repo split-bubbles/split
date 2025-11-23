@@ -79,6 +79,7 @@ import { brokerService } from '../services/brokerService';
  */
 export const parseReceipt = async (req: Request, res: Response) => {
   try {
+    console.log("parseReceipt endpoint called");
     const { imageUrl, base64Image } = req.body;
 
     if (!imageUrl && !base64Image) {
@@ -97,9 +98,10 @@ export const parseReceipt = async (req: Request, res: Response) => {
     }
 
     // TESTING MODE: Set to true to use mock responses without spending credits
-    const USE_MOCK_TESTING = true;
+    const USE_MOCK_TESTING = false;
     
     if (USE_MOCK_TESTING) {
+      console.log("Using MOCK testing mode for parseReceipt");
       // Simulate network delay (1-3 seconds)
       const delay = Math.floor(Math.random() * 2000) + 1000;
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -272,9 +274,10 @@ export const splitExpense = async (req: Request, res: Response) => {
     }
 
     // TESTING MODE: Set to true to use mock responses without spending credits
-    const USE_MOCK_TESTING = true;
+    const USE_MOCK_TESTING = false;
     
     if (USE_MOCK_TESTING) {
+      console.log("Using MOCK testing mode for splitExpense");
       // Simulate network delay (1.5-4 seconds for reasoning)
       const delay = Math.floor(Math.random() * 2500) + 1500;
       await new Promise(resolve => setTimeout(resolve, delay));

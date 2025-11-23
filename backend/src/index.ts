@@ -19,7 +19,9 @@ const PORT = process.env.PORT || 4000;
 
 // Apply basic middleware
 app.use(cors());
-app.use(express.json());
+// Configure JSON body parser with higher limit to allow base64 images
+const BODY_LIMIT = process.env.BODY_LIMIT || '25mb';
+app.use(express.json({ limit: BODY_LIMIT }));
 
 // API documentation route
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
@@ -72,7 +74,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 const startServer = async () => {
   try {
     // Run initialization tasks
-    await initializeApplication();
+   // await initializeApplication();
     
     // Start the server
     app.listen(PORT, () => {
