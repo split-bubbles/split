@@ -1,5 +1,5 @@
 import { Button } from "@coinbase/cdp-react/components/ui/Button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useEvmAddress, useCurrentUser, useSendUserOperation } from "@coinbase/cdp-hooks";
 import { useReadContract } from "../hooks/useReadContract";
 import { type Address, encodeFunctionData, parseUnits } from "viem";
@@ -9,6 +9,7 @@ import { SplitModeSelector } from "./components/SplitModeSelector";
 import { ParticipantAmountInput } from "./components/ParticipantAmountInput";
 import { SplitSummaryBar } from "./components/SplitSummaryBar";
 import { AiPanel } from "./components/AiPanel";
+import type { ParsedReceipt, SplitResult } from "../services/aiService";
 
 // USDC contract address on Base Sepolia
 const USDC_ADDRESS: Address = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
@@ -56,6 +57,19 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
   const [participantSplits, setParticipantSplits] = useState<Map<Address, number>>(new Map());
   const [selfSplit, setSelfSplit] = useState(0);
   const [showAIOptions, setShowAIOptions] = useState(false);
+  const [isClosingDrawer, setIsClosingDrawer] = useState(false);
+  const [drawerDragY, setDrawerDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  
+  // AI Panel state (persists when drawer closes)
+  const [aiImageData, setAiImageData] = useState<string | null>(null);
+  const [aiImageUrl, setAiImageUrl] = useState<string>('');
+  const [aiInstructions, setAiInstructions] = useState('');
+  const [aiParsed, setAiParsed] = useState<ParsedReceipt | null>(null);
+  const [aiSplitResult, setAiSplitResult] = useState<SplitResult | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiPriorPlan, setAiPriorPlan] = useState<any>(null);
 
   const { data: contractFriends } = useReadContract({
     address: currentAddress ? FRIEND_REQUESTS_CONTRACT_ADDRESS : undefined,
@@ -99,8 +113,92 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
     setSplitMode("equal");
     setSelfSplit(0);
     setParticipantSplits(new Map());
-    setShowAIOptions(false);
+    closeAIDrawer();
   };
+
+  const closeAIDrawer = useCallback(() => {
+    requestAnimationFrame(() => {
+      setIsClosingDrawer(true);
+      setTimeout(() => {
+        setShowAIOptions(false);
+        setIsClosingDrawer(false);
+        setDrawerDragY(0);
+      }, 300); // Match animation duration
+    });
+  }, []);
+
+  // Drag handlers for drawer
+  const dragStartY = useRef(0);
+
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    dragStartY.current = clientY;
+    setDrawerDragY(0);
+  };
+
+  const handleDragMove = useCallback((e: MouseEvent | TouchEvent) => {
+    if (!isDragging) return;
+    
+    e.preventDefault();
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+    const deltaY = clientY - dragStartY.current;
+    
+    if (deltaY > 0) {
+      setDrawerDragY(deltaY);
+    } else {
+      setDrawerDragY(0);
+    }
+  }, [isDragging]);
+
+  const handleDragEnd = useCallback(() => {
+    if (!isDragging) return;
+    
+    setIsDragging(false);
+    
+    // If dragged more than 100px down, close the drawer
+    if (drawerDragY > 100) {
+      closeAIDrawer();
+    } else {
+      // Snap back
+      setDrawerDragY(0);
+    }
+  }, [isDragging, drawerDragY, closeAIDrawer]);
+
+  // Add global mouse/touch event listeners for dragging
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      handleDragMove(e);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      handleDragMove(e);
+    };
+
+    const handleMouseUp = () => {
+      handleDragEnd();
+    };
+
+    const handleTouchEnd = () => {
+      handleDragEnd();
+    };
+
+    document.addEventListener('mousemove', handleMouseMove, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isDragging, handleDragMove, handleDragEnd]);
 
   const handleToggleFriend = (friend: Address) => {
     setSelectedFriends(prev => { const next = new Set(prev); next.has(friend) ? next.delete(friend) : next.add(friend); return next; });
@@ -108,9 +206,20 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
   const updateParticipantAmount = (address: Address, amount: number) => { if (splitMode === "equal") return; setParticipantSplits(new Map(participantSplits.set(address, amount))); };
   const updateSelfAmount = (amount: number) => { if (splitMode === "equal") return; setSelfSplit(amount); };
   const handleApplyAIActions = (allocs: { address: string; amount: number }[], selfAmount?: number) => {
-    const map = new Map<Address, number>();
-    allocs.forEach(a => { const addr = a.address as Address; if (selectedFriends.has(addr)) map.set(addr, a.amount); });
-    setParticipantSplits(map); if (typeof selfAmount === 'number') setSelfSplit(selfAmount); setSplitMode('custom');
+    // Update existing split in place rather than creating a new one
+    const updatedMap = new Map<Address, number>(participantSplits);
+    allocs.forEach(a => {
+      const addr = a.address as Address;
+      // Only update amounts for addresses that are already in the split
+      if (updatedMap.has(addr)) {
+        updatedMap.set(addr, a.amount);
+      }
+    });
+    setParticipantSplits(updatedMap);
+    if (typeof selfAmount === 'number') setSelfSplit(selfAmount);
+    setSplitMode('custom');
+    // Close the AI panel after applying the split with animation
+    closeAIDrawer();
   };
   const handleSaveExpense = async () => {
     if (selectedFriends.size === 0) { alert("Select at least one friend."); return; }
@@ -223,13 +332,13 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
   }
 
   const content = (
-    <div className="card card--add-expense" style={{ maxWidth: "100%", height: isModal ? "auto" : "100vh", maxHeight: isModal ? "90vh" : "100vh", display: "flex", flexDirection: "column", padding: 0 }}>
+    <div className="card card--add-expense" style={{ maxWidth: "100%", height: isModal ? "auto" : "100vh", maxHeight: isModal ? "95vh" : "100vh", minHeight: isModal ? "85vh" : "100vh", display: "flex", flexDirection: "column", padding: 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1.25rem", borderBottom: "1px solid #334155", backgroundColor: "#0f172a", color: "#e2e8f0" }}>
         <h2 className="card-title" style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}>Add an expense</h2>
         <button onClick={(e) => handleCancel(e)} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#e2e8f0", padding: "0.25rem", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
       </div>
-      <div style={{ flex: 1, overflowY: "auto", padding: "1.25rem", backgroundColor: "#0f172a" }}>
-        <div className="flex-col-container" style={{ gap: "1.5rem" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "0", paddingBottom: "180px", backgroundColor: "#0f172a", display: "flex", flexDirection: "column" }}>
+        <div className="flex-col-container" style={{ gap: "1.5rem", flex: 1 }}>
           <div className="flex-col-container" style={{ gap: "0.75rem" }}>
             <label style={{ fontSize: "0.75rem", letterSpacing: "0.5px", textTransform: "uppercase", color: "#94a3b8", fontWeight: 600 }}>With you and:</label>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
@@ -262,26 +371,183 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
               <SplitSummaryBar total={enteredTotal} allocated={totalSplit} mode={splitMode} />
             </div>
           )}
-          {currentAddress && (
-            <div className="flex-col-container" style={{ gap: "0.75rem" }}>
-              <button onClick={() => setShowAIOptions(!showAIOptions)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.75rem 1rem", backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "0.5rem", cursor: "pointer", fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.5px", textTransform: "uppercase", color: "#e2e8f0" }}>
-                <span>🤖 AI-powered split (Optional)</span><span>{showAIOptions ? "▼" : "▶"}</span>
-              </button>
-              {showAIOptions && (
-                <AiPanel
-                  total={enteredTotal}
-                  mode={splitMode}
-                  participants={Array.from(selectedFriends).map(a => ({ address: a, amount: participantSplits.get(a) || 0 }))}
-                  selfAddress={currentAddress}
-                  onApplySplit={handleApplyAIActions}
-                />
-              )}
+         </div>
+       </div>
+      {/* AI Drawer - Bottom Sheet */}
+      {showAIOptions && currentAddress && (
+        <>
+          <div 
+            className="ai-drawer-overlay"
+            onClick={closeAIDrawer}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.5)",
+              backdropFilter: "blur(4px)",
+              zIndex: 1001,
+              animation: isClosingDrawer ? "fadeOut 0.3s ease-out" : "fadeIn 0.2s ease-out",
+              opacity: isClosingDrawer ? 0 : 1,
+            }}
+          />
+          <div 
+            className="ai-drawer"
+            style={{
+              position: "fixed",
+              left: 0,
+              right: 0,
+              bottom: isClosingDrawer ? undefined : (drawerDragY > 0 ? `calc(80px - ${drawerDragY}px)` : "80px"),
+              maxHeight: "calc(85vh - 80px)",
+              backgroundColor: "#0f172a",
+              borderTop: "1px solid #334155",
+              borderTopLeftRadius: "1.5rem",
+              borderTopRightRadius: "1.5rem",
+              zIndex: 1002,
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.3)",
+              animation: isClosingDrawer ? "slideOutDown 0.3s ease-out" : (showAIOptions ? "slideInUp 0.3s ease-out" : undefined),
+              transform: isClosingDrawer ? undefined : (drawerDragY > 0 ? `translateY(${drawerDragY}px)` : undefined),
+              transition: isClosingDrawer ? "none" : (drawerDragY === 0 ? "transform 0.1s ease-out" : undefined),
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Full-width handle button at top */}
+            <button
+              onClick={closeAIDrawer}
+              onMouseDown={handleDragStart}
+              onTouchStart={handleDragStart}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.5rem",
+                padding: "1rem 1.25rem",
+                backgroundColor: "#1e293b",
+                border: "none",
+                borderBottom: "1px solid #334155",
+                borderTopLeftRadius: "1.5rem",
+                borderTopRightRadius: "1.5rem",
+                cursor: isDragging ? "grabbing" : "grab",
+                fontSize: "0.875rem",
+                fontWeight: 600,
+                letterSpacing: "0.5px",
+                textTransform: "uppercase",
+                color: "#e2e8f0",
+                transition: "background-color 0.2s",
+                userSelect: "none",
+              }}
+              onMouseEnter={(e) => {
+                if (!isDragging) {
+                  e.currentTarget.style.backgroundColor = "#334155";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isDragging) {
+                  e.currentTarget.style.backgroundColor = "#1e293b";
+                }
+              }}
+            >
+              <span style={{ fontSize: "1rem" }}>▼</span>
+              <span>🤖 AI-powered split</span>
+              <span style={{ fontSize: "1rem" }}>▼</span>
+            </button>
+            <div style={{ flex: 1, overflowY: "auto", padding: "1.25rem" }}>
+              <AiPanel
+                mode={splitMode}
+                participants={Array.from(selectedFriends).map(a => ({ address: a, amount: participantSplits.get(a) || 0 }))}
+                selfAddress={currentAddress}
+                onApplySplit={handleApplyAIActions}
+                // Persisted state
+                imageData={aiImageData}
+                imageUrl={aiImageUrl}
+                instructions={aiInstructions}
+                parsed={aiParsed}
+                splitResult={aiSplitResult}
+                loading={aiLoading}
+                error={aiError}
+                priorPlan={aiPriorPlan}
+                // State setters
+                onImageDataChange={setAiImageData}
+                onImageUrlChange={setAiImageUrl}
+                onInstructionsChange={setAiInstructions}
+                onParsedChange={setAiParsed}
+                onSplitResultChange={setAiSplitResult}
+                onLoadingChange={setAiLoading}
+                onErrorChange={setAiError}
+                onPriorPlanChange={setAiPriorPlan}
+              />
             </div>
-          )}
+          </div>
+        </>
+      )}
+      
+      {/* AI-powered split button - Fixed above Finalize, under drawer when open */}
+      {currentAddress && !showAIOptions && (
+        <div style={{ 
+          position: "fixed",
+          left: 0,
+          right: 0,
+          bottom: "80px",
+          padding: 0,
+          backgroundColor: "#0f172a",
+          zIndex: 1001,
+        }}>
+          <button 
+            onClick={() => {
+              if (showAIOptions) {
+                closeAIDrawer();
+              } else {
+                setShowAIOptions(true);
+              }
+            }} 
+            style={{ 
+              width: "100%",
+              display: "flex", 
+              alignItems: "center", 
+              justifyContent: "center", 
+              gap: "0.5rem",
+              padding: "0.75rem 1rem", 
+              backgroundColor: "#1e293b", 
+              border: "1px solid #334155", 
+              borderRadius: "0.5rem", 
+              cursor: "pointer", 
+              fontSize: "0.875rem", 
+              fontWeight: 600, 
+              letterSpacing: "0.5px", 
+              color: "#e2e8f0",
+              transition: "all 0.2s"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#334155";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "#1e293b";
+            }}
+          >
+            <span style={{ fontSize: "1rem", transform: showAIOptions ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.3s ease" }}>▲</span>
+            <span>🤖</span>
+            <span style={{ textTransform: "uppercase" }}>AI-powered split</span>
+            <span style={{ fontSize: "1rem", transform: showAIOptions ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.3s ease" }}>▲</span>
+          </button>
         </div>
-      </div>
-      {/* Finalize Button */}
-      <div style={{ padding: "1rem 1.25rem", borderTop: "1px solid #334155", backgroundColor: "#0f172a" }}>
+      )}
+      
+      {/* Finalize Button - Fixed above drawer */}
+      <div style={{ 
+        position: "fixed",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        padding: "1rem 1.25rem",
+        borderTop: "1px solid #334155",
+        backgroundColor: "#0f172a",
+        zIndex: 1003,
+        boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.3)"
+      }}>
         {showSuccess ? (
           <div style={{
             width: "100%",

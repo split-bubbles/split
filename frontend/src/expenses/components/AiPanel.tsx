@@ -7,17 +7,132 @@ interface AiPanelProps {
   participants: { address: string; amount: number }[];
   selfAddress: string;
   onApplySplit: (allocations: { address: string; amount: number }[], selfAmount?: number) => void;
+  // Persisted state props (optional for backward compatibility)
+  imageData?: string | null;
+  imageUrl?: string;
+  instructions?: string;
+  parsed?: ParsedReceipt | null;
+  splitResult?: SplitResult | null;
+  loading?: boolean;
+  error?: string | null;
+  priorPlan?: any;
+  // State setters
+  onImageDataChange?: (value: string | null) => void;
+  onImageUrlChange?: (value: string) => void;
+  onInstructionsChange?: (value: string) => void;
+  onParsedChange?: (value: ParsedReceipt | null) => void;
+  onSplitResultChange?: (value: SplitResult | null) => void;
+  onLoadingChange?: (value: boolean) => void;
+  onErrorChange?: (value: string | null) => void;
+  onPriorPlanChange?: (value: any) => void;
 }
 
-export const AiPanel: React.FC<AiPanelProps> = ({ mode, participants, selfAddress, onApplySplit }) => {
-  const [imageData, setImageData] = useState<string | null>(null); // base64
-  const [imageUrl, setImageUrl] = useState<string>('');
-  const [instructions, setInstructions] = useState('');
-  const [parsed, setParsed] = useState<ParsedReceipt | null>(null);
-  const [splitResult, setSplitResult] = useState<SplitResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [priorPlan, setPriorPlan] = useState<any>(null);
+export const AiPanel: React.FC<AiPanelProps> = ({ 
+  mode, 
+  participants, 
+  selfAddress, 
+  onApplySplit,
+  imageData: propImageData,
+  imageUrl: propImageUrl,
+  instructions: propInstructions,
+  parsed: propParsed,
+  splitResult: propSplitResult,
+  loading: propLoading,
+  error: propError,
+  priorPlan: propPriorPlan,
+  onImageDataChange,
+  onImageUrlChange,
+  onInstructionsChange,
+  onParsedChange,
+  onSplitResultChange,
+  onLoadingChange,
+  onErrorChange,
+  onPriorPlanChange,
+}) => {
+  // Use props if provided, otherwise use local state
+  const [localImageData, setLocalImageData] = useState<string | null>(null);
+  const [localImageUrl, setLocalImageUrl] = useState<string>('');
+  const [localInstructions, setLocalInstructions] = useState('');
+  const [localParsed, setLocalParsed] = useState<ParsedReceipt | null>(null);
+  const [localSplitResult, setLocalSplitResult] = useState<SplitResult | null>(null);
+  const [localLoading, setLocalLoading] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [localPriorPlan, setLocalPriorPlan] = useState<any>(null);
+
+  // Use controlled state if props are provided, otherwise use local state
+  const imageData = propImageData !== undefined ? propImageData : localImageData;
+  const imageUrl = propImageUrl !== undefined ? propImageUrl : localImageUrl;
+  const instructions = propInstructions !== undefined ? propInstructions : localInstructions;
+  const parsed = propParsed !== undefined ? propParsed : localParsed;
+  const splitResult = propSplitResult !== undefined ? propSplitResult : localSplitResult;
+  const loading = propLoading !== undefined ? propLoading : localLoading;
+  const error = propError !== undefined ? propError : localError;
+  const priorPlan = propPriorPlan !== undefined ? propPriorPlan : localPriorPlan;
+
+  // Wrapper functions that update either parent state or local state
+  const setImageData = (value: string | null) => {
+    if (onImageDataChange) {
+      onImageDataChange(value);
+    } else {
+      setLocalImageData(value);
+    }
+  };
+
+  const setImageUrl = (value: string) => {
+    if (onImageUrlChange) {
+      onImageUrlChange(value);
+    } else {
+      setLocalImageUrl(value);
+    }
+  };
+
+  const setInstructions = (value: string) => {
+    if (onInstructionsChange) {
+      onInstructionsChange(value);
+    } else {
+      setLocalInstructions(value);
+    }
+  };
+
+  const setParsed = (value: ParsedReceipt | null) => {
+    if (onParsedChange) {
+      onParsedChange(value);
+    } else {
+      setLocalParsed(value);
+    }
+  };
+
+  const setSplitResult = (value: SplitResult | null) => {
+    if (onSplitResultChange) {
+      onSplitResultChange(value);
+    } else {
+      setLocalSplitResult(value);
+    }
+  };
+
+  const setLoading = (value: boolean) => {
+    if (onLoadingChange) {
+      onLoadingChange(value);
+    } else {
+      setLocalLoading(value);
+    }
+  };
+
+  const setError = (value: string | null) => {
+    if (onErrorChange) {
+      onErrorChange(value);
+    } else {
+      setLocalError(value);
+    }
+  };
+
+  const setPriorPlan = (value: any) => {
+    if (onPriorPlanChange) {
+      onPriorPlanChange(value);
+    } else {
+      setLocalPriorPlan(value);
+    }
+  };
 
   async function handleUnifiedSplit() {
     if (participants.length === 0) return; // nothing to split
@@ -189,21 +304,21 @@ export const AiPanel: React.FC<AiPanelProps> = ({ mode, participants, selfAddres
       )}
       {splitResult && (
         <div style={{ marginTop: '14px' }}>
-          <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '6px' }}>AI Allocations</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            {splitResult.allocations.map(a => (
-              <div key={a.address} style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(15,23,42,0.6)', border: '1px solid #334155', borderRadius: '6px', padding: '6px 8px', fontSize: '12px', color: '#cbd5e1' }}>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>{a.address.slice(0,6)}...{a.address.slice(-4)}</span>
-                <span>{a.amount.toFixed(2)}</span>
-              </div>
-            ))}
-            {splitResult.selfAmount !== undefined && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(15,23,42,0.6)', border: '1px solid #334155', borderRadius: '6px', padding: '6px 8px', fontSize: '12px', color: '#10b981' }}>
-                <span>You</span>
-                <span>{splitResult.selfAmount.toFixed(2)}</span>
-              </div>
-            )}
-          </div>
+          {(splitResult.summary || splitResult.notes) && (
+            <div style={{ 
+              marginTop: '10px', 
+              padding: '10px 12px',
+              background: 'rgba(15,23,42,0.6)', 
+              border: '1px solid #334155', 
+              borderRadius: '8px',
+              fontSize: '12px', 
+              color: '#cbd5e1',
+              lineHeight: '1.5'
+            }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', marginBottom: '6px' }}>AI Summary</div>
+              <div>{splitResult.summary || splitResult.notes}</div>
+            </div>
+          )}
           {(splitResult.openQuestions && splitResult.openQuestions.length > 0) && (
             <div style={{ marginTop: '10px', background: 'rgba(15,23,42,0.6)', border: '1px solid #334155', borderRadius: '8px', padding: '8px' }}>
               <div style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', marginBottom: '6px' }}>Open Questions</div>
@@ -211,9 +326,6 @@ export const AiPanel: React.FC<AiPanelProps> = ({ mode, participants, selfAddres
                 {splitResult.openQuestions.map((q, i) => <li key={i}>{q}</li>)}
               </ul>
             </div>
-          )}
-          {splitResult.summary && (
-            <div style={{ marginTop: '10px', fontSize: '11px', color: '#94a3b8' }}>Summary: {splitResult.summary}</div>
           )}
         </div>
       )}

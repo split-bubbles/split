@@ -1,7 +1,7 @@
 import { useEvmAddress, useCurrentUser, useSendUserOperation } from "@coinbase/cdp-hooks";
 import { useReadContract } from "../hooks/useReadContract";
 import { useState, useEffect } from "react";
-import { createPublicClient, http, isAddress, getAddress, encodeFunctionData, type Address, maxUint256 } from "viem";
+import { createPublicClient, http, isAddress, getAddress, encodeFunctionData, type Address, maxUint256, toCoinType } from "viem";
 import { normalize } from "viem/ens";
 import { baseSepolia, sepolia } from "viem/chains";
 import { FRIEND_REQUESTS_ABI, FRIEND_REQUESTS_CONTRACT_ADDRESS } from "../contracts/FriendRequests";
@@ -142,8 +142,12 @@ function AddFriend() {
     setResolvedName(null);
 
     try {
-      const publicClient = createPublicClient({
+      const l2Client = createPublicClient({
         chain: baseSepolia,
+        transport: http(),
+      });
+      const l1Client = createPublicClient({
+        chain: sepolia,
         transport: http(),
       });
 
@@ -157,13 +161,72 @@ function AddFriend() {
         // Try to resolve as ENS name or Base Sepolia basename
         try {
           let nameToResolve = trimmedInput;
+          const lowerInput = trimmedInput.toLowerCase();
 
-          if (!nameToResolve.includes(".")) {
-            // Try .basetest.eth first (Base Sepolia)
+          // Check if input already contains a domain
+          if (lowerInput.includes(".split.eth")) {
+            // Already has .split.eth, resolve on L1 with coinType
+            nameToResolve = trimmedInput;
+            const normalizedName = normalize(nameToResolve);
+            try {
+              // L2 ENS names like .split.eth need to be resolved on L1 with coinType
+              const address = await l1Client.getEnsAddress({
+                name: normalizedName,
+                coinType: toCoinType(baseSepolia.id),
+              });
+
+              if (address) {
+                setResolvedAddress(address as Address);
+                setResolvedName(nameToResolve);
+                return;
+              }
+            } catch (splitError) {
+              // Continue to try other options
+            }
+          } else if (lowerInput.includes(".split") && !lowerInput.endsWith(".eth")) {
+            // Has .split but missing .eth
+            nameToResolve = `${trimmedInput}.eth`;
+            const normalizedName = normalize(nameToResolve);
+            try {
+              const address = await l1Client.getEnsAddress({
+                name: normalizedName,
+                coinType: toCoinType(baseSepolia.id),
+              });
+
+              if (address) {
+                setResolvedAddress(address as Address);
+                setResolvedName(nameToResolve);
+                return;
+              }
+            } catch (splitError) {
+              // Continue to try other options
+            }
+          } else if (!nameToResolve.includes(".")) {
+            // No domain, try different options
+            // Try .split.eth first (Base Sepolia L2 ENS)
+            try {
+              const splitName = `${nameToResolve}.split.eth`;
+              const normalizedSplitName = normalize(splitName);
+              // L2 ENS names need to be resolved on L1 with coinType
+              const splitAddress = await l1Client.getEnsAddress({
+                name: normalizedSplitName,
+                coinType: toCoinType(baseSepolia.id),
+              });
+
+              if (splitAddress) {
+                setResolvedAddress(splitAddress as Address);
+                setResolvedName(splitName);
+                return;
+              }
+            } catch (splitError) {
+              // Continue to try other options
+            }
+
+            // Try .basetest.eth (Base Sepolia)
             try {
               const baseName = `${nameToResolve}.basetest.eth`;
               const normalizedBaseName = normalize(baseName);
-              const baseAddress = await publicClient.getEnsAddress({
+              const baseAddress = await l2Client.getEnsAddress({
                 name: normalizedBaseName,
               });
 
@@ -179,17 +242,23 @@ function AddFriend() {
             nameToResolve = `${nameToResolve}.eth`;
           }
 
+          // Try standard ENS resolution on L1
           const normalizedName = normalize(nameToResolve);
-          const address = await publicClient.getEnsAddress({
-            name: normalizedName,
-          });
+          try {
+            const address = await l1Client.getEnsAddress({
+              name: normalizedName,
+            });
 
-          if (address) {
-            setResolvedAddress(address as Address);
-            setResolvedName(trimmedInput.includes(".") ? trimmedInput : nameToResolve);
-          } else {
-            setError(`Could not resolve "${trimmedInput}" to an address`);
+            if (address) {
+              setResolvedAddress(address as Address);
+              setResolvedName(trimmedInput.includes(".") ? trimmedInput : nameToResolve);
+              return;
+            }
+          } catch (e) {
+            // Continue to error handling
           }
+
+          setError(`Could not resolve "${trimmedInput}" to an address`);
         } catch (e: any) {
           setError(`Could not resolve "${trimmedInput}". Please enter a valid Ethereum address (0x...) or ENS name.`);
           console.error("Resolution error:", e);
