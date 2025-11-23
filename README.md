@@ -34,6 +34,8 @@ Note: Make sure to set up your environment variables by copying the example file
    npm run dev
    ```   
 
+Note: You will need a CORS extension to authenticate. [https://addons.mozilla.org/en-US/firefox/addon/cors-everywhere/](firefox), [https://chromewebstore.google.com/detail/Allow%20CORS:%20Access-Control-Allow-Origin/lhobafahddgcelffkeicbaginigeejlf?hl=en](chrome)
+
 
 ## AI Usage 
 We used Github Copilot to help us generate boilerplate code and write some UI components faseter.
