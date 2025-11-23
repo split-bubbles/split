@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { formatUnits, type Address } from "viem";
 import { useEvmAddress } from "@coinbase/cdp-hooks";
 import { useReadContract } from "./hooks/useReadContract";
+import { AuthButton } from "@coinbase/cdp-react/components/AuthButton";
 
 import Header from "./common/Header";
 import BottomNav, { type TabType } from "./common/BottomNav";
@@ -10,6 +11,8 @@ import AddFriend from "./friends/AddFriend";
 import FriendsList from "./friends/FriendsList";
 import PendingApprovals from "./friends/PendingApprovals";
 import AddExpense from "./expenses/AddExpense";
+import { IconCheck, IconCopy, IconUser } from "./common/Icons";
+import BaseNameResolver from "./basename/BaseNameResolver";
 
 // USDC contract address on Base Sepolia
 // You may need to verify this address or get it from Base Sepolia documentation
@@ -35,6 +38,9 @@ function SignedInScreen() {
   const { evmAddress: address } = useEvmAddress();
   const [activeTab, setActiveTab] = useState<TabType>("home");
   const [expenseOpenTrigger, setExpenseOpenTrigger] = useState(0);
+  const [isCopied, setIsCopied] = useState(false);
+  const [hasBasename, setHasBasename] = useState(false);
+  const nameContainerRef = useRef<HTMLSpanElement>(null);
 
   // Fetch USDC balance using Wagmi
   const {
@@ -56,6 +62,34 @@ function SignedInScreen() {
     // USDC has 6 decimals, not 18 like ETH
     return formatUnits(usdcBalance as bigint, 6);
   }, [usdcBalance]);
+
+  const formatAddress = useCallback((addr: string) => {
+    if (!addr) return "";
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  }, []);
+
+  const copyAddress = async () => {
+    if (!address) return;
+    try {
+      await navigator.clipboard.writeText(address);
+      setIsCopied(true);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  // Reset hasBasename when address changes
+  useEffect(() => {
+    setHasBasename(false);
+  }, [address]);
+
+  useEffect(() => {
+    if (!isCopied) return;
+    const timeout = setTimeout(() => {
+      setIsCopied(false);
+    }, 2000);
+    return () => clearTimeout(timeout);
+  }, [isCopied]);
 
   const handleQuickAddExpense = () => {
     // On mobile, switch to expense tab
@@ -122,25 +156,54 @@ function SignedInScreen() {
           {activeTab === "profile" && (
             <div className="tab-content">
               <div className="card">
-                <h2 className="card-title">⚙️ Settings</h2>
+                <h2 className="card-title">👤 Account</h2>
                 <p style={{ color: "var(--cdp-example-text-secondary-color)", fontSize: "0.95rem" }}>
-                  Account settings and preferences
+                  Your wallet information
                 </p>
                 
-                <div className="settings-list">
-                  <div className="setting-item">
-                    <span>💰 Default Currency</span>
-                    <span className="setting-value">USDC</span>
+                {address && (
+                  <div className="settings-list">
+                    <div className="setting-item" style={{ flexDirection: "column", alignItems: "stretch", gap: "0.75rem" }}>
+                      <span style={{ fontSize: "0.9rem", fontWeight: 500 }}>Wallet Address</span>
+                      <button
+                        aria-label="copy wallet address"
+                        className="flex-row-container copy-address-button header-address-button"
+                        onClick={copyAddress}
+                        style={{ 
+                          width: "100%",
+                          justifyContent: "flex-start",
+                          padding: "0.75rem",
+                          borderRadius: "0.5rem",
+                          gap: "0.5rem"
+                        }}
+                      >
+                        {!isCopied && (
+                          <>
+                            <IconUser className="user-icon user-icon--user" style={{ height: "1.25rem", width: "1.25rem" }} />
+                            <IconCopy className="user-icon user-icon--copy" style={{ height: "1.25rem", width: "1.25rem" }} />
+                          </>
+                        )}
+                        {isCopied && <IconCheck className="user-icon user-icon--check" style={{ height: "1.25rem", width: "1.25rem" }} />}
+                        <span 
+                          ref={nameContainerRef}
+                          className="wallet-address header-address-text" 
+                          style={{ fontSize: "0.875rem", display: "flex", alignItems: "center", gap: "0.25rem" }}
+                        >
+                          <BaseNameResolver onResolved={(resolved) => {
+                            setHasBasename(resolved);
+                          }} />
+                          {!hasBasename && address && (
+                            <span style={{ display: "inline-block" }}>{formatAddress(address)}</span>
+                          )}
+                        </span>
+                      </button>
+                    </div>
+                    
+                    <div className="setting-item" style={{ justifyContent: "center", padding: "1.5rem 1rem", border: "none", background: "transparent" }}>
+                      <AuthButton />
+                    </div>
                   </div>
-                  <div className="setting-item">
-                    <span>🔔 Notifications</span>
-                    <span className="setting-value">Enabled</span>
-                  </div>
-                  <div className="setting-item">
-                    <span>🌐 Network</span>
-                    <span className="setting-value">Base Sepolia</span>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           )}

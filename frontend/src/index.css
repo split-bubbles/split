@@ -878,6 +878,17 @@ input[type="checkbox"] {
 
 /* Mobile-specific improvements */
 @media (max-width: 639px) {
+  /* Hide header on mobile */
+  header.main-header,
+  header {
+    display: none !important;
+  }
+  
+  /* Adjust header height variable for mobile */
+  :root {
+    --header-height: 0px;
+  }
+  
   .site-title {
     font-size: 1.25rem;
   }
@@ -894,14 +905,75 @@ input[type="checkbox"] {
     font-size: 0.75rem;
   }
   
-  header {
-    padding: 0.875rem 1rem;
-  }
-  
   .tab-content {
     padding: 1rem;
   }
 }
+
+/* Mobile profile tab colors to match desktop header */
+@media (max-width: 639px) and (prefers-color-scheme: light) {
+  /* Profile tab card styling to match desktop header */
+  .tab-content .card {
+    background: rgba(238, 243, 255, 0.8) !important;
+    border: 1px solid rgba(39, 117, 202, 0.5) !important;
+    box-shadow: 
+      0 4px 16px rgba(238, 243, 255, 0.3),
+      0 1px 0 rgba(255, 255, 255, 0.5) inset,
+      0 -1px 0 rgba(238, 243, 255, 0.2) inset !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    background-blend-mode: overlay;
+  }
+  
+  /* Profile tab title color */
+  .tab-content .card .card-title {
+    color: #2775CA !important;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  }
+  
+  /* Profile tab description text */
+  .tab-content .card p {
+    color: #2775CA !important;
+    opacity: 0.8;
+  }
+  
+  /* Setting item labels */
+  .tab-content .setting-item span:first-child {
+    color: #2775CA !important;
+  }
+  
+  /* Wallet address text color */
+  .tab-content .wallet-address,
+  .tab-content .header-address-text {
+    color: #2775CA !important;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  }
+  
+  /* Copy address button styling */
+  .tab-content .header-address-button,
+  .tab-content .copy-address-button {
+    background-color: rgba(255, 255, 255, 0.4) !important;
+    border: 1px solid rgba(39, 117, 202, 0.3) !important;
+    color: #2775CA !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    box-shadow: 0 2px 8px rgba(39, 117, 202, 0.1) !important;
+  }
+  
+  .tab-content .header-address-button:hover,
+  .tab-content .copy-address-button:hover {
+    background-color: rgba(255, 255, 255, 0.5) !important;
+    border-color: rgba(39, 117, 202, 0.4) !important;
+    box-shadow: 0 4px 12px rgba(39, 117, 202, 0.15) !important;
+  }
+  
+  /* Setting item background */
+  .tab-content .setting-item {
+    background-color: rgba(255, 255, 255, 0.3) !important;
+    border-color: rgba(39, 117, 202, 0.2) !important;
+  }
+}
+
 
 /* Hide desktop view on mobile */
 @media (max-width: 1023px) {
