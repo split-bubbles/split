@@ -34,7 +34,7 @@ Note: Make sure to set up your environment variables by copying the example file
    npm run dev
    ```   
 
-Note: You will need a CORS extension to authenticate. [https://addons.mozilla.org/en-US/firefox/addon/cors-everywhere/](firefox), [https://chromewebstore.google.com/detail/Allow%20CORS:%20Access-Control-Allow-Origin/lhobafahddgcelffkeicbaginigeejlf?hl=en](chrome)
+Note: You will need a CORS extension to authenticate. [firefox](https://addons.mozilla.org/en-US/firefox/addon/cors-everywhere/), [chrome](https://chromewebstore.google.com/detail/Allow%20CORS:%20Access-Control-Allow-Origin/lhobafahddgcelffkeicbaginigeejlf?hl=en)
 
 
 ## AI Usage 
