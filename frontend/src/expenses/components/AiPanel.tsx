@@ -4,7 +4,7 @@ import type { ParsedReceipt, SplitResult } from '../../services/aiService';
 
 interface AiPanelProps {
   mode: 'equal' | 'custom';
-  participants: { address: string; amount: number }[];
+  participants: { ens: string; owes: number; paid?: number }[]; // participants now identified by ENS
   selfAddress: string;
   onApplySplit: (allocations: { address: string; amount: number }[], selfAmount?: number) => void;
   // Persisted state props (optional for backward compatibility)
@@ -154,7 +154,11 @@ export const AiPanel: React.FC<AiPanelProps> = ({
       const res = await splitExpense({
         parsed: effectiveParsed || { items: [] },
         instructions,
-        participants: participants.map(p => ({ address: p.address, amount: mode === 'custom' ? p.amount : undefined })),
+        participants: participants.map(p => ({
+          ens: p.ens,
+          owes: mode === 'custom' ? p.owes : undefined,
+          paid: p.paid
+        })),
         selfAddress,
         priorPlan
       });

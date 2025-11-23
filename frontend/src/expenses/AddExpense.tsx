@@ -331,19 +331,26 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
   const updateParticipantAmount = (address: Address, amount: number) => { if (splitMode === "equal") return; setParticipantSplits(new Map(participantSplits.set(address, amount))); };
   const updateSelfAmount = (amount: number) => { if (splitMode === "equal") return; setSelfSplit(amount); };
   const handleApplyAIActions = (allocs: { address: string; amount: number }[], selfAmount?: number) => {
-    // Update existing split in place rather than creating a new one
+    // Allocation "address" may be an ENS name now. Resolve back to wallet addresses.
     const updatedMap = new Map<Address, number>(participantSplits);
     allocs.forEach(a => {
-      const addr = a.address as Address;
-      // Only update amounts for addresses that are already in the split
-      if (updatedMap.has(addr)) {
-        updatedMap.set(addr, a.amount);
+      const identifier = a.address.trim();
+      let resolved: Address | undefined = undefined;
+      if (identifier.startsWith('0x')) {
+        resolved = identifier as Address;
+      } else {
+        // Find matching ENS entry
+        for (const [addr, name] of ensNameMap.entries()) {
+          if (name === identifier) { resolved = addr; break; }
+        }
+      }
+      if (resolved && updatedMap.has(resolved)) {
+        updatedMap.set(resolved, a.amount);
       }
     });
     setParticipantSplits(updatedMap);
     if (typeof selfAmount === 'number') setSelfSplit(selfAmount);
     setSplitMode('custom');
-    // Close the AI panel after applying the split with animation
     closeAIDrawer();
   };
   const handleSaveExpense = async () => {
@@ -680,7 +687,11 @@ function AddExpense({ openTrigger, isModal = false }: AddExpenseProps) {
             <div style={{ flex: 1, overflowY: "auto", padding: "1.25rem" }}>
               <AiPanel
                 mode={splitMode}
-                participants={Array.from(selectedFriends).map(a => ({ address: a, amount: participantSplits.get(a) || 0 }))}
+                participants={Array.from(selectedFriends).map(a => ({
+                  ens: ensNameMap.get(a) || a,
+                  owes: participantSplits.get(a) || 0,
+                  paid: 0 // placeholder until UI captures actual contributions
+                }))}
                 selfAddress={currentAddress}
                 onApplySplit={handleApplyAIActions}
                 // Persisted state

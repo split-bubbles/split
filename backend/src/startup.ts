@@ -7,7 +7,6 @@ import { brokerService, OFFICIAL_PROVIDERS } from './services/brokerService';
 export const initializeApplication = async (): Promise<void> => {
   try {
     console.log('🔄 Initializing application...');
-    return;
     
     // Check if ledger exists, create with default values if not
     try {
@@ -26,11 +25,8 @@ export const initializeApplication = async (): Promise<void> => {
       }
 
     } catch (error) {
-      console.log('⚠️ Ledger account does not exist, creating...');
-      // Default initial amount, can be adjusted as needed
-      const initialAmount = 0.01; 
-      await brokerService.addFundsToLedger(initialAmount);
-      console.log(`✅ Ledger account created with ${initialAmount} initial funds`);
+  
+      console.log(`Failed to access ledger account,` + error);
     }
 
     const services = await brokerService.listServices();

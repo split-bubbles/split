@@ -18,9 +18,13 @@ export interface ParsedReceipt {
   tip?: number | null;
 }
 
+// Participant input now expects ENS name (not raw wallet address).
+// Optionally keeps original address for local UI reconciliation if provided.
 export interface SplitParticipantInput {
-  address: string;
-  amount?: number; // custom amount if provided
+  ens: string; // ENS name to send to backend
+  address?: string; // optional original wallet address retained for UI mapping
+  owes?: number; // optional preset intended owed amount (seed value for model)
+  paid?: number; // amount already paid/contributed by this participant toward the total
 }
 
 export interface SplitResultAllocation {
@@ -41,42 +45,11 @@ export interface SplitResult {
 }
 
 const BASE_URL = `${import.meta.env.VITE_API_PREFIX}/reciepts`; // backend spelling
-const USE_MOCK = (import.meta as any).env?.VITE_AI_MOCK === 'true';
 
-function mockParsedReceipt(): ParsedReceipt {
-  return {
-    currency: null,
-    total: 36.8,
-    subtotal: 32,
-    tax: null,
-    tip: 4.8,
-    items: [
-      { description: 'TACOS', amount: 20 },
-      { description: 'DIET COKE', amount: 2 },
-      { description: 'SMART WATER', amount: 3 },
-      { description: 'CAKE', amount: 7 }
-    ]
-  };
-}
-
-function mockSplit(participants: SplitParticipantInput[], selfAddress: string): SplitResult {
-  const parsed = mockParsedReceipt();
-  const total = parsed.total || 0;
-  const count = participants.length + 1;
-  const per = count ? total / count : 0;
-  return {
-    allocations: participants.map(p => ({ address: p.address, amount: per })),
-    selfAmount: per,
-    notes: `Mock AI split equally for ${participants.length + 1} participants (including ${selfAddress}).`
-  };
-}
+// NOTE: All mock logic removed. Service now always hits backend.
 
 // Parse using either imageUrl or base64Image; AI panel will decide which arg to pass.
 export async function parseReceipt(source: { base64Image?: string; imageUrl?: string }): Promise<ParsedReceipt> {
-  if (USE_MOCK) {
-    console.warn('[aiService] Using mock parsed receipt');
-    return mockParsedReceipt();
-  }
   try {
     const res = await fetch(`${BASE_URL}/parse`, {
       method: "POST",
@@ -85,7 +58,7 @@ export async function parseReceipt(source: { base64Image?: string; imageUrl?: st
     });
     if (!res.ok) throw new Error(`Parse failed: ${res.status}`);
     const data = await res.json();
-    const receipt = data.receipt || data; // sample response wraps in receipt
+    const receipt = data.receipt || data;
     return {
       items: Array.isArray(receipt.items) ? receipt.items.map((it: any) => ({
         description: String(it.name ?? it.description ?? ''),
@@ -97,9 +70,9 @@ export async function parseReceipt(source: { base64Image?: string; imageUrl?: st
       tax: receipt.tax ?? null,
       tip: receipt.tip ?? null
     };
-  } catch (e) {
-    console.warn('[aiService] parseReceipt error, falling back to mock', e);
-    return mockParsedReceipt();
+  } catch (e: any) {
+    console.error('[aiService] parseReceipt failed', e);
+    throw new Error(e?.message || 'Receipt parsing failed');
   }
 }
 
@@ -107,39 +80,58 @@ export async function parseReceipt(source: { base64Image?: string; imageUrl?: st
 export async function splitExpense(params: {
   parsed: ParsedReceipt;
   instructions?: string;
-  participants: SplitParticipantInput[];
+  participants: SplitParticipantInput[]; // now contains ENS names
   selfAddress: string;
+  selfEns?: string; // optional ENS name of the caller/user
   priorPlan?: any;
 }): Promise<SplitResult> {
-  const { parsed, instructions, participants, selfAddress, priorPlan } = params;
-  if (USE_MOCK) {
-    console.warn('[aiService] Using mock split');
-    return mockSplit(participants, selfAddress);
-  }
+  const { parsed, instructions, participants, selfAddress, selfEns, priorPlan } = params;
+  console.debug('[aiService] splitExpense participants input', participants);
+
+  // Ensure the current user (self) is included as a participant at the beginning.
+  // If not already present (by ENS match), prepend with default paid 0 unless provided.
+  const selfIdentifier = selfEns || selfAddress || "user"; // prefer ENS, fallback to wallet, then generic
+  const hasSelf = participants.some(p => p.ens === selfIdentifier);
+  const fullParticipants: SplitParticipantInput[] = hasSelf
+    ? participants
+    : [{ ens: selfIdentifier, paid: 0, owes: undefined }, ...participants];
+
+  const request_body =  JSON.stringify({
+    receipt: {
+      currency: parsed.currency ?? null,
+      total: parsed.total,
+      subtotal: parsed.subtotal,
+      tax: parsed.tax,
+      tip: parsed.tip,
+      items: parsed.items.map(i => ({ name: i.description, price: i.amount }))
+    },
+    instructions,
+    // Participants we send to backend:
+    //  ens: identifier
+    //  paid: what they actually contributed (cash/card) toward the bill
+    //  owes: any preset intended owed amount (optional seed for the model; derived from 'amount')
+    participants: fullParticipants.map(p => ({
+      ens: p.ens,
+      paid: p.paid ?? 0,
+      owes: p.owes
+    })),
+    priorPlan: priorPlan || {}
+  });
+
+  console.debug('[aiService] splitExpense request body', request_body);
+
   try {
     const res = await fetch(`${BASE_URL}/split`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        receipt: {
-          currency: parsed.currency ?? null,
-          total: parsed.total,
-          subtotal: parsed.subtotal,
-          tax: parsed.tax,
-          tip: parsed.tip,
-          items: parsed.items.map(i => ({ name: i.description, price: i.amount }))
-        },
-        instructions,
-        participants: participants.map(p => ({ ens: p.address, paid: 0 })),
-        priorPlan: priorPlan || {}
-      })
+      body: request_body
     });
     if (!res.ok) throw new Error(`Split failed: ${res.status}`);
     const data = await res.json();
     const split = data.split || data; // unwrap
     const allocations = Array.isArray(split.participants) ? split.participants.map((p: any) => ({
       address: String(p.ens || p.address || ''),
-      amount: Number(p.owes || p.amount || 0),
+      amount: Number(p.owes ?? p.amount ?? 0),
       comment: p.comment
     })) : [];
     return {
@@ -152,9 +144,8 @@ export async function splitExpense(params: {
       openQuestions: split.openQuestions || [],
       rawPlan: split
     };
-  } catch (e) {
-    console.warn('[aiService] splitExpense error, falling back to mock', e);
-    const mock = mockSplit(participants, selfAddress);
-    return { ...mock, summary: mock.notes, currency: parsed.currency ?? null, total: parsed.total, openQuestions: [], rawPlan: mock };
+  } catch (e: any) {
+    console.error('[aiService] splitExpense failed', e);
+    throw new Error(e?.message || 'Split request failed');
   }
 }

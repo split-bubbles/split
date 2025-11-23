@@ -289,6 +289,7 @@ class BrokerService {
    * @param base64Image Base64-encoded image string (optional if imageUrl provided)
    */
   async parseReceipt(imageUrl?: string, base64Image?: string): Promise<any> {
+    console.log("parseReceipt called");
     await this.ensureInitialized();
 
     if (!imageUrl && !base64Image) {
@@ -316,6 +317,16 @@ class BrokerService {
     if (!providerAddress) {
       throw new Error('Qwen vision provider not configured');
     }
+
+    // check that we have enough model credits 1.5G
+    const currentBalenceInfo = await this.broker!.ledger.getLedger();
+    const requiredBalance = ethers.parseEther("1.5");
+
+    if (currentBalenceInfo[1] < requiredBalance) {
+      console.log(`⚠️  Insufficient balance (${ethers.formatEther(currentBalenceInfo[1])} OG), adding more funds...`);
+      await this.broker!.ledger.depositFund(1.5);
+    }
+
 
     const transferAmount = ethers.parseEther("1.0"); // 1 OG in neuron
     await this.broker!.ledger.transferFund(providerAddress, "inference", transferAmount);
@@ -407,6 +418,7 @@ class BrokerService {
     participants: Array<{ ens: string; paid: number }>,
     priorPlan?: any
   ): Promise<any> {
+    console.log("splitExpense called"); 
     await this.ensureInitialized();
 
     if (!receipt || typeof receipt !== 'object') {
@@ -425,6 +437,16 @@ class BrokerService {
     if (!providerAddress) {
       throw new Error('Deepseek reasoning provider not configured');
     }
+
+    // check that we have enough model credits 1.5G
+    const currentBalenceInfo = await this.broker!.ledger.getLedger();
+    const requiredBalance = ethers.parseEther("1.5");
+
+    if (currentBalenceInfo[1] < requiredBalance) {
+      console.log(`⚠️  Insufficient balance (${ethers.formatEther(currentBalenceInfo[1])} OG), adding more funds...`);
+      await this.broker!.ledger.depositFund(1.5);
+    }
+
 
     const transferAmount = ethers.parseEther("1.0"); // 1 OG in neuron
     await this.broker!.ledger.transferFund(providerAddress, "inference", transferAmount);
