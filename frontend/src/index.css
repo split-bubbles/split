@@ -172,9 +172,7 @@ header {
   width: 100%;
   box-shadow: var(--cdp-example-shadow-sm);
   backdrop-filter: blur(10px);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  position: static;
   flex-shrink: 0;
 }
 
@@ -182,11 +180,8 @@ header {
 header.main-header {
   border-radius: 1.5rem !important;
   margin: 1rem auto 0 auto !important;
-  width: calc(100vw - 4rem) !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  right: auto !important;
-  top: 0 !important;
+  width: calc(100% - 4rem) !important;
+  max-width: 1400px;
 }
 
 /* Light mode header with #EEF3FF color - liquid glass effect */
@@ -204,10 +199,8 @@ header.main-header {
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     background-blend-mode: overlay;
     margin: 1rem auto 0 auto;
-    width: calc(100vw - 4rem);
-    left: 50%;
-    transform: translateX(-50%);
-    right: auto;
+    width: calc(100% - 4rem);
+    max-width: 1400px;
   }
   
   header .header-title,
@@ -676,9 +669,7 @@ input[type="checkbox"] {
 .app-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
   min-height: 100vh;
-  overflow: hidden;
   background: linear-gradient(180deg, 
     var(--cdp-example-page-bg-color) 0%, 
     var(--cdp-example-page-bg-alt-color) 100%);
@@ -691,7 +682,7 @@ input[type="checkbox"] {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-bottom: 80px; /* Space for bottom nav */
+  padding-bottom: 0;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
 }
@@ -724,7 +715,7 @@ input[type="checkbox"] {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  min-height: calc(100dvh - var(--header-height) - var(--bottom-nav-height) - 16px);
+  min-height: calc(100dvh - var(--header-height) - var(--bottom-nav-height));
   animation: fadeIn 0.3s ease-in-out;
 }
 
@@ -1184,8 +1175,6 @@ input[type="checkbox"] {
   }
   
   .app-container {
-    overflow: hidden;
-    height: 100vh;
     min-height: 100vh;
     background: linear-gradient(180deg, 
       var(--cdp-example-page-bg-color) 0%, 
@@ -1195,23 +1184,23 @@ input[type="checkbox"] {
   }
   
   .main-content {
-    overflow: hidden;
-    padding-top: calc(var(--header-height) + 1rem + 8rem);
-    padding-bottom: 8rem;
-    height: calc(100vh - var(--header-height));
+    padding-top: 1rem;
+    padding-bottom: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    height: calc(100vh - var(--header-height));
+    overflow: hidden;
   }
   
   .main-content.no-scroll {
-    overflow: hidden;
-    padding-top: calc(var(--header-height) + 1rem + 8rem);
-    padding-bottom: 8rem;
-    height: calc(100vh - var(--header-height));
+    padding-top: 1rem;
+    padding-bottom: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    height: calc(100vh - var(--header-height));
+    overflow: hidden;
   }
   
   .desktop-all-tabs {
@@ -1276,7 +1265,7 @@ input[type="checkbox"] {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  min-height: calc(100dvh - var(--header-height) - var(--bottom-nav-height) - 16px);
+  min-height: calc(100dvh - var(--header-height) - var(--bottom-nav-height));
 }
 .tab-content .card { max-width: 100%; }
 
