@@ -7,6 +7,12 @@ import { FRIEND_REQUESTS_ABI, FRIEND_REQUESTS_CONTRACT_ADDRESS } from "../contra
 import { useEnsNameOptimistic } from "../hooks/useEnsNameOptimistic";
 import { AddressLink } from "./TransactionLink";
 
+// Truncate ENS names for mobile display
+const truncateEnsName = (name: string, maxLength: number = 18): string => {
+  if (name.length <= maxLength) return name;
+  return `${name.slice(0, maxLength - 3)}...`;
+};
+
 function FriendListItem({ 
   address
 }: { 
@@ -18,7 +24,20 @@ function FriendListItem({
     l2ChainId: baseSepolia.id,
   });
 
-  const displayName = ensName || `${address.slice(0, 6)}...${address.slice(-4)}`;
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 639);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const displayName = ensName 
+    ? (isMobile ? truncateEnsName(ensName) : ensName)
+    : `${address.slice(0, 6)}...${address.slice(-4)}`;
 
   return (
     <div
@@ -36,12 +55,21 @@ function FriendListItem({
         margin: "0 auto",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", flex: 1 }}>
-        <span style={{ fontWeight: "500", fontSize: "0.95rem" }}>
+      <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0, overflow: "hidden" }}>
+        <span 
+          style={{ 
+            fontWeight: "500", 
+            fontSize: "0.95rem",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap"
+          }}
+          title={ensName || address}
+        >
           {displayName}
         </span>
       </div>
-      <div style={{ display: "flex", alignItems: "center" }}>
+      <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
         <AddressLink address={address} />
       </div>
     </div>

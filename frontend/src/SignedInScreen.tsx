@@ -142,6 +142,8 @@ function SignedInScreen() {
           {/* Friends Tab */}
           {activeTab === "friends" && (
             <div className="tab-content">
+              <FriendsList />
+              
               <div className="card card--pending-approvals">
                 <PendingApprovals />
               </div>
@@ -162,7 +164,7 @@ function SignedInScreen() {
                 </p>
                 
                 {address && (
-                  <div className="settings-list">
+                <div className="settings-list">
                     <div className="setting-item" style={{ flexDirection: "column", alignItems: "stretch", gap: "0.75rem" }}>
                       <span style={{ fontSize: "0.9rem", fontWeight: 500 }}>Wallet Address</span>
                       <button
@@ -197,11 +199,11 @@ function SignedInScreen() {
                           )}
                         </span>
                       </button>
-                    </div>
+                  </div>
                     
                     <div className="setting-item" style={{ justifyContent: "center", padding: "1.5rem 1rem", border: "none", background: "transparent" }}>
                       <AuthButton />
-                    </div>
+                  </div>
                   </div>
                 )}
               </div>
